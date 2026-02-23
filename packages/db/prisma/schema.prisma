@@ -1,0 +1,275 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  URL      = env("DATABASE_URL")
+}
+
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   
+  name         String
+  avatar       String?  
+  role         UserRole @default(USER)
+  
+  createdQuizzes      Quiz[]               @relation("QuizCreator")
+  hostedSessions      Session[]            @relation("SessionHost")
+  participantSessions SessionParticipant[] 
+  responses           Response[]          
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([email])
+}
+
+enum UserRole {
+  USER   
+  ADMIN  
+}
+
+
+model Quiz {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  
+  creatorId String
+  creator   User   @relation("QuizCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  
+  isAIGenerated Boolean @default(false)
+  aiPrompt      String? 
+  
+  isScannedFromImage Boolean @default(false)
+  scannedImageUrl    String? 
+  
+  enableAdaptiveDifficulty Boolean @default(false)
+  
+  questions Question[] 
+  sessions  Session[]  
+  
+  expiresAt DateTime? 
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([creatorId])
+  @@index([expiresAt]) 
+}
+
+
+model Question {
+  id     String @id @default(uuid())
+  quizId String
+  quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  
+  questionType QuestionType 
+  text         String       
+  imageUrl     String?      
+
+  order Int @default(0)
+  
+  difficulty Int @default(5)
+
+  hasTimeLimit     Boolean @default(false) 
+  timeLimitSeconds Int?   
+  
+  points Int @default(100) 
+  
+  options         Option[]        
+  responses       Response[]       
+  questionResults QuestionResult[] 
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([quizId, order]) 
+  @@index([difficulty]) 
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE_SINGLE // Single select multiple choice
+  MULTIPLE_CHOICE_MULTI  // Multi-select multiple choice
+  TRUE_FALSE             // True/False question
+  RATING_SCALE           // Rating scale (1-5 or 1-10)
+  OPEN_ENDED             // Text input answer
+}
+
+// Option: Answer choices for questions (for multiple choice, true/false, etc.)
+model Option {
+  id         String @id @default(uuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  text      String  
+  imageUrl  String?
+  isCorrect Boolean @default(false) 
+  order     Int     @default(0)
+  
+  selectedBy ResponseOption[] 
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([questionId])
+}
+
+
+model Session {
+  id       String        @id @default(uuid())
+  quizId   String
+  quiz     Quiz          @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  hostId   String        
+  host     User          @relation("SessionHost", fields: [hostId], references: [id])
+  
+  joinCode String @unique // e.g., "12345678"
+  
+  status SessionStatus @default(DRAFT)
+  
+  currentQuestionId String? 
+  
+  allowLateJoiners Boolean @default(true)  
+  allowRejoin      Boolean @default(true) 
+  
+  startedAt DateTime?
+  endedAt   DateTime? 
+  expiresAt DateTime  
+  
+  // Relationships
+  participants    SessionParticipant[] 
+  responses       Response[]          
+  sessionState    SessionState?        
+  questionResults QuestionResult[]    
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([joinCode]) 
+  @@index([hostId])
+  @@index([status])
+  @@index([expiresAt]) 
+}
+
+enum SessionStatus {
+  DRAFT        
+  WAITING_ROOM 
+  LIVE         
+  PAUSED       
+  COMPLETED    
+}
+
+model SessionState {
+  id        String @id @default(uuid())
+  sessionId String @unique // One-to-one with Session
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  currentQuestionIndex Int      @default(0) 
+  questionStartedAt    DateTime? 
+  
+  isAcceptingResponses Boolean @default(false) 
+  participantCount     Int     @default(0)     // Live count of active participants
+  
+  updatedAt DateTime @updatedAt // Last state update (for real-time sync)
+
+  @@index([sessionId])
+}
+
+
+model SessionParticipant {
+  id     String @id @default(uuid())
+  
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  joinedAt   DateTime  @default(now()) 
+  lastSeenAt DateTime  @default(now()) // Last activity (for rejoin detection)
+  isActive   Boolean   @default(true)  // Currently in session?
+
+  totalScore Int @default(0) // Accumulated score across all questions
+  rank       Int? // Leaderboard rank (null until calculated)
+  
+  @@unique([sessionId, userId]) // User can only join a session once
+  @@index([sessionId])
+  @@index([userId])
+}
+
+model Response {
+  id String @id @default(uuid())
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  participantId String
+  participant   User   @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  
+  responseData Json
+  
+  answeredAt     DateTime @default(now()) 
+  responseTimeMs Int?    
+  
+  isCorrect    Boolean @default(false) 
+  pointsEarned Int     @default(0)    
+
+  selectedOptions ResponseOption[] 
+  
+  @@unique([sessionId, questionId, participantId]) 
+  @@index([sessionId, questionId])
+  @@index([participantId])
+}
+
+
+model ResponseOption {
+  id String @id @default(uuid())
+  
+  responseId String
+  response   Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  
+  optionId String
+  option   Option @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([responseId, optionId])
+  @@index([responseId])
+  @@index([optionId])
+}
+
+
+model QuestionResult {
+  id String @id @default(uuid())
+  
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  totalResponses    Int @default(0) // How many participants answered
+  correctResponses  Int @default(0) // How many got it correct
+  correctionRate    Float @default(0) // Percentage of correct answers (0-100)
+  averageResponseTimeMs Int? // Average time to answer (if timed)
+  
+  // Detailed Results (JSON for flexibility)
+  // Examples:
+  // - Option distribution: {"option1": 10, "option2": 5}
+  // - Word cloud data: {"word1": frequency1, ...}
+  // - Rating distribution: {"1": 2, "2": 5, "3": 10, ...}
+  resultData Json?
+  calculatedAt DateTime @default(now()) // When results were computed
+  
+  @@unique([sessionId, questionId])
+  @@index([sessionId])
+  @@index([questionId])
+  @@index([correctionRate]) 
+}
+

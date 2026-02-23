@@ -1,0 +1,736 @@
+\documentclass[12pt,a4paper]{article}
+
+% ─── Packages ────────────────────────────────────────────────────────────────
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage{times}
+\usepackage{titlesec}
+\usepackage{titling}
+\usepackage{fancyhdr}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{parskip}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage{tocloft}
+\usepackage{multirow}
+
+% ─── Colours ─────────────────────────────────────────────────────────────────
+\definecolor{primary}{RGB}{30, 64, 175}
+\definecolor{lightgray}{RGB}{248, 249, 250}
+\definecolor{tablegray}{RGB}{230, 235, 245}
+
+% ─── Hyperref Setup ──────────────────────────────────────────────────────────
+\hypersetup{
+  colorlinks=true,
+  linkcolor=primary,
+  urlcolor=primary,
+  citecolor=primary,
+  pdftitle={SRS - Live Interactive Quiz Platform},
+  pdfauthor={},
+  bookmarks=true,
+  bookmarksopen=true
+}
+
+% ─── Section Formatting ──────────────────────────────────────────────────────
+\titleformat{\section}
+  {\large\bfseries\color{primary}}
+  {\thesection}{1em}{}[\titlerule]
+
+\titleformat{\subsection}
+  {\normalsize\bfseries\color{primary}}
+  {\thesubsection}{1em}{}
+
+\titleformat{\subsubsection}
+  {\normalsize\bfseries}
+  {\thesubsubsection}{1em}{}
+
+\titlespacing*{\section}{0pt}{18pt}{8pt}
+\titlespacing*{\subsection}{0pt}{12pt}{5pt}
+\titlespacing*{\subsubsection}{0pt}{10pt}{4pt}
+
+% ─── Header / Footer ─────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{primary}{\textbf{PRACTICAL -- 2}}}
+\fancyhead[R]{\small\textcolor{primary}{SRS -- Live Interactive Quiz Platform}}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{primary}\leaders\hrule height \headrulewidth\hfill}}
+
+% ─── List Formatting ─────────────────────────────────────────────────────────
+\setlist[itemize]{noitemsep, topsep=4pt, leftmargin=1.5em}
+\setlist[enumerate]{noitemsep, topsep=4pt, leftmargin=1.5em}
+
+% ─── Table of Contents ───────────────────────────────────────────────────────
+\renewcommand{\cftsecfont}{\bfseries\color{primary}}
+\renewcommand{\cftsubsecfont}{\color{primary}}
+\renewcommand{\cftsecpagefont}{\bfseries\color{primary}}
+
+% ─── Custom Commands ─────────────────────────────────────────────────────────
+\newcommand{\frbox}[2]{%
+  \vspace{2pt}
+  \noindent\textbf{#1}\quad #2\par
+  \vspace{2pt}
+}
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  DOCUMENT
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+
+% ════════════════════════════════════════════════════════════════════════════
+%  TITLE PAGE
+% ════════════════════════════════════════════════════════════════════════════
+\begin{titlepage}
+  \centering
+  \vspace*{1.5cm}
+
+  {\LARGE\bfseries\color{primary} PRACTICAL -- 2 \par}
+  \vspace{0.4cm}
+  \rule{0.8\linewidth}{1.5pt}
+  \vspace{0.4cm}
+
+  {\Large\bfseries Software Requirements Specification\\[4pt]
+   (SRS) Document Preparation\par}
+  \vspace{0.3cm}
+  {\large\itshape IEEE Standard\par}
+
+  \vspace{1cm}
+  \rule{0.6\linewidth}{0.5pt}
+  \vspace{1cm}
+
+  {\large\bfseries Project Title:\par}
+  \vspace{0.3cm}
+  {\LARGE\bfseries\color{primary} Live Interactive Quiz Platform\par}
+  \vspace{0.2cm}
+  {\large\itshape (Mentimeter-like Real-Time Quiz System)\par}
+
+  \vspace{1.5cm}
+  \rule{0.6\linewidth}{0.5pt}
+  \vspace{1cm}
+
+  \begin{tabular}{ll}
+    \textbf{Document Type}   & Software Requirements Specification \\[4pt]
+    \textbf{Standard}        & IEEE Std 830-1998                   \\[4pt]
+    \textbf{Version}         & 1.0                                 \\[4pt]
+    \textbf{Date}            & February 2026                       \\[4pt]
+    \textbf{Status}          & Final Draft                         \\
+  \end{tabular}
+
+  \vfill
+  \rule{0.8\linewidth}{1pt}
+  {\small Prepared as part of Software Engineering Laboratory Practical}
+\end{titlepage}
+
+% ════════════════════════════════════════════════════════════════════════════
+%  OBJECTIVE & AIM
+% ════════════════════════════════════════════════════════════════════════════
+\newpage
+\section*{Objective}
+To understand the IEEE standard Software Requirements Specification (SRS) format and
+prepare a complete SRS document for a software project.
+
+\section*{Aim of the Practical}
+The aim of this practical is to train learners to systematically convert a problem
+statement into a well-structured SRS document that can serve as a foundation for
+software design, development, and testing.
+
+\section*{Introduction}
+A Software Requirements Specification (SRS) is a formal document that clearly
+describes the functional and non-functional requirements of a software system.
+It specifies what the system should do, the constraints under which it must operate,
+and the assumptions made during development. The SRS does \emph{not} describe
+implementation or design details. A well-written SRS helps avoid ambiguity and
+ensures that all stakeholders have a common understanding of the system.
+
+\subsection*{Prerequisite}
+Approved Problem Statement (Practical--1) --
+\textbf{Live Interactive Quiz Platform (Mentimeter-like)}
+
+% ════════════════════════════════════════════════════════════════════════════
+%  TABLE OF CONTENTS
+% ════════════════════════════════════════════════════════════════════════════
+\newpage
+\tableofcontents
+\newpage
+
+% ════════════════════════════════════════════════════════════════════════════
+%  BODY
+% ════════════════════════════════════════════════════════════════════════════
+\setcounter{section}{0}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Introduction}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{Purpose}
+This Software Requirements Specification (SRS) document describes in detail the
+functional and non-functional requirements of the \textbf{Live Interactive Quiz
+Platform} --- a real-time, Mentimeter-like quiz hosting system built on a
+Node.js monorepo architecture with a PostgreSQL database and WebSocket-based
+real-time communication.
+
+This document serves as a common reference for quiz creators, developers, testers,
+and stakeholders. It clearly defines system behaviour, constraints, and assumptions
+so that the system can be developed, tested, and evaluated according to the
+specified requirements.
+
+\subsection{Scope}
+The \textbf{Live Interactive Quiz Platform} is designed to conduct real-time, live
+quiz sessions where registered \emph{creators} host quiz presentations and
+registered \emph{participants} respond in real time using a unique 8-digit join code
+--- similar to Mentimeter and Kahoot.
+
+\noindent The system will:
+\begin{itemize}
+  \item Allow registered creators to create and manage quizzes manually, via AI
+        prompt generation, or by uploading and scanning a quiz image.
+  \item Allow registered participants to join live sessions using a unique 8-digit
+        code and answer questions in real time.
+  \item Support optional per-question time limits with automatic scoring upon answer
+        submission.
+  \item Provide a live waiting room, real-time question progression controlled by
+        the host, and a live leaderboard updated after each question.
+  \item Support adaptive difficulty: automatically adjust the next question's
+        difficulty based on the correction rate of the current question
+        (optional, creator-enabled).
+  \item Provide session result analytics, per-participant response visibility for
+        the creator, and export of results to a spreadsheet (CSV).
+\end{itemize}
+
+\noindent The scope of the system is limited to live quiz session management and
+real-time participation. It does not include payment systems, advanced proctoring,
+or integration with external LMS platforms. Session data is automatically retained
+for 7--8~days after session expiry and then purged.
+
+\subsection{Definitions, Acronyms, and Abbreviations}
+
+\begin{longtable}{>{\bfseries}p{2.8cm} p{11cm}}
+  \toprule
+  \textbf{Term} & \textbf{Description} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Term} & \textbf{Description} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  LIQP  & Live Interactive Quiz Platform \\[3pt]
+  Creator & Registered user who creates, manages, and hosts live quiz sessions \\[3pt]
+  Participant & Registered user who joins and responds to live quiz sessions \\[3pt]
+  AI    & Artificial Intelligence --- used for AI-based quiz generation from text prompts \\[3pt]
+  WS / WSS & WebSocket / Secure WebSocket --- real-time bidirectional communication protocol \\[3pt]
+  MCQ   & Multiple Choice Question \\[3pt]
+  OCR   & Optical Character Recognition --- used to parse quiz content from scanned images \\[3pt]
+  LLM   & Large Language Model --- AI model used for generating quiz content from prompts \\[3pt]
+  ORM   & Object-Relational Mapping --- Prisma ORM used as the database access layer \\
+\end{longtable}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Overall Description}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{Product Perspective}
+The Live Interactive Quiz Platform is a new standalone web-based application
+developed to enable real-time, live quiz hosting and participation, inspired by
+platforms like Mentimeter and Kahoot. It is built on a Node.js Turborepo monorepo
+with a dedicated HTTP REST backend, a WebSocket real-time backend, and a PostgreSQL
+database managed via Prisma ORM.
+
+Currently, most quiz systems are asynchronous and lack live interaction between host
+and participants. The proposed system provides a real-time quiz experience where a
+host presents questions slide-by-slide to all participants simultaneously, with live
+response collection, instant scoring, leaderboard updates after each question, and
+detailed per-participant analytics and export for the host.
+
+\subsection{Product Functions}
+The Live Interactive Quiz Platform provides the following major functions:
+
+\begin{itemize}
+  \item Registered user (creator and participant) authentication via email and password.
+  \item Quiz creation in three modes: manual entry, AI prompt-based generation (LLM),
+        and image upload with OCR scanning.
+  \item Five question types: Single-select MCQ, Multi-select MCQ, True/False, Rating
+        Scale, Open-Ended text.
+  \item Per-question configuration: time limit (optional), base points, difficulty
+        level (1--10).
+  \item Live session hosting with a unique 8-digit join code, waiting room lobby,
+        and slide-by-slide question control by the host.
+  \item Real-time participant response collection and broadcasting via WebSocket.
+  \item Automatic scoring: correct answer = full points; incorrect answer = 0 points.
+  \item Live leaderboard displayed after each question and at session end.
+  \item Adaptive difficulty: optional auto-adjustment of next question difficulty
+        based on current question correction rate.
+  \item Per-participant response analytics visible to the creator; CSV export of
+        session results.
+  \item Automatic session data expiry and cleanup after 7--8~days.
+\end{itemize}
+
+\subsection{User Classes and Characteristics}
+
+\subsubsection*{Creator}
+The creator is a registered user responsible for creating quizzes (manually, via AI
+prompt, or by image scan), configuring question types and settings, launching live
+sessions, controlling question progression slide-by-slide, pausing/resuming sessions,
+and viewing per-participant responses and analytics. The creator can also export
+results as a CSV file. The creator is expected to have moderate computer knowledge.
+
+\subsubsection*{Participant}
+Participants are registered users who join live quiz sessions using the 8-digit join
+code. They answer questions in real time, see their score update after each question,
+and view the leaderboard. Late joiners and rejoining after disconnection are both
+supported. Participants are assumed to have basic web browsing knowledge and a stable
+internet connection.
+
+\subsection{Operating Environment}
+The Live Interactive Quiz Platform will operate on:
+\begin{itemize}
+  \item Desktop computers and smartphones.
+  \item Operating systems: Windows, Linux, macOS, and Android.
+  \item Modern web browsers supporting WebSocket connections: Chrome, Firefox,
+        Edge, Safari.
+  \item PostgreSQL relational database for all persistent data storage
+        (managed via Prisma ORM).
+  \item Node.js runtime environment for HTTP backend and WebSocket backend servers.
+  \item A stable internet connection with WebSocket (WS/WSS) protocol support.
+  \item External LLM API (e.g., OpenAI GPT) for AI-based quiz generation.
+  \item OCR/Vision API for scanning and parsing quiz content from uploaded images.
+\end{itemize}
+
+\subsection{Design and Implementation Constraints}
+\begin{itemize}
+  \item The system shall support the English language interface.
+  \item The system shall operate through modern web browsers supporting WebSocket
+        connections.
+  \item The system shall use WebSocket connections for real-time question
+        broadcasting and response collection.
+  \item The system shall depend on an external LLM API service (e.g., OpenAI) for
+        AI-based quiz generation.
+  \item The system shall use Prisma ORM for all database schema management and
+        query operations.
+  \item Session data shall be retained for a maximum of 7--8~days after session
+        expiry.
+\end{itemize}
+
+\subsection{Assumptions and Dependencies}
+\begin{itemize}
+  \item It is assumed that all creators and participants have registered accounts
+        with valid email and password credentials.
+  \item It is assumed that participants have a stable internet connection during live
+        session participation to maintain WebSocket connectivity.
+  \item The system depends on the proper functioning of the PostgreSQL database
+        server.
+  \item The system depends on the availability of the external LLM API (e.g.,
+        OpenAI) for AI quiz generation features.
+  \item The system depends on WebSocket server availability for real-time session
+        management.
+  \item The system depends on a file/cloud storage service for quiz image uploads
+        used in OCR-based quiz scanning.
+\end{itemize}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{External Interface Requirements}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{User Interfaces}
+The system shall provide a simple and user-friendly interface including:
+\begin{itemize}
+  \item Registration and login page for creators and participants.
+  \item Creator dashboard: view all quizzes, create new quiz (manual / AI prompt /
+        image scan), manage existing quizzes.
+  \item Quiz builder screen: add/edit questions, set question type, time limit,
+        points, and difficulty.
+  \item Session launch screen: generate 8-digit join code, configure session
+        settings (late joiners, rejoin, adaptive difficulty).
+  \item Waiting room (lobby) screen: displays join code, shows joined participants,
+        creator starts session from here.
+  \item Live question screen (participant): displays current question, answer
+        options, and countdown timer if timed.
+  \item Session control panel (host): advance to next question, pause/resume, end
+        session, view live response count.
+  \item Leaderboard screen: displayed after each question and at session end.
+  \item Analytics screen (creator): view per-question statistics, individual
+        participant responses, and export results as CSV.
+\end{itemize}
+
+\subsection{Hardware Interfaces}
+The system shall operate on standard computers and smartphones with:
+\begin{itemize}
+  \item Standard keyboard, mouse, or touchscreen for answer input and quiz management.
+  \item Display screen for rendering real-time question slides and leaderboard updates.
+  \item Network interface card (NIC) supporting stable TCP connections for WebSocket
+        communication.
+\end{itemize}
+
+\subsection{Software Interfaces}
+The system shall use:
+\begin{itemize}
+  \item \textbf{PostgreSQL} --- relational database for all persistent data (users,
+        quizzes, sessions, responses, results).
+  \item \textbf{Prisma ORM} --- database access layer with schema migrations and
+        type-safe query builder.
+  \item \textbf{LLM API} (e.g., OpenAI GPT-4) --- for AI-based quiz generation
+        from natural language prompts.
+  \item \textbf{OCR / Vision API} --- for scanning and parsing quiz content from
+        uploaded images.
+  \item \textbf{HTTP Backend} (\texttt{http-backend}) --- Node.js REST API server
+        handling user auth, quiz CRUD, session management, and CSV export.
+  \item \textbf{WebSocket Backend} (\texttt{ws-backend}) --- Node.js WebSocket
+        server for real-time event broadcasting (question transitions, responses,
+        leaderboard updates).
+  \item \textbf{Frontend} --- Web application for creator and participant interfaces.
+\end{itemize}
+
+\subsection{Communication Interfaces}
+The system shall use \textbf{HTTP/HTTPS} protocols for all REST API communication
+between the client and the HTTP backend server (user authentication, quiz management,
+session creation, analytics, CSV export).
+
+The system shall use \textbf{WebSocket (WS/WSS)} protocol for real-time
+bidirectional communication between the client and the WebSocket backend server
+during live quiz sessions. WebSocket events shall handle: participant joins/leaves,
+question broadcasting, response submission acknowledgement, leaderboard updates,
+session state changes (start, pause, resume, end), and live participant count updates.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{System Features (Functional Requirements)}
+% ─────────────────────────────────────────────────────────────────────────────
+
+% ── Feature 1 ────────────────────────────────────────────────────────────────
+\subsection{Feature 1: User Management}
+\textbf{Description:} Manages registration and secure authentication for all users
+(creators and participants).
+
+\textbf{Requirements:}
+\begin{itemize}
+  \item[\textbf{FR1:}] The system shall allow any person to register an account by
+        providing a name, email address, and password.
+  \item[\textbf{FR2:}] The system shall store passwords as bcrypt-hashed values and
+        never in plain text.
+  \item[\textbf{FR3:}] The system shall authenticate users via email and password,
+        issuing a session token upon successful login.
+  \item[\textbf{FR4:}] The system shall maintain a user role field (\texttt{USER} /
+        \texttt{ADMIN}) to differentiate access permissions.
+  \item[\textbf{FR5:}] The system shall associate each quiz and each hosted session
+        with the creator's user account.
+  \item[\textbf{FR6:}] The system shall associate each session participation and each
+        response with the participant's user account.
+\end{itemize}
+
+% ── Feature 2 ────────────────────────────────────────────────────────────────
+\subsection{Feature 2: Quiz Creation and Management}
+\textbf{Description:} Allows creators to create, configure, edit, and delete quizzes
+through three creation modes.
+
+\textbf{Requirements:}
+\begin{itemize}
+  \item[\textbf{FR7:}] The system shall allow creators to create a quiz manually by
+        entering a title, description, cover image (optional), and adding questions
+        one by one.
+  \item[\textbf{FR8:}] The system shall allow creators to generate a complete quiz by
+        entering a natural language AI prompt; the system shall call an external LLM
+        API to generate structured quiz content automatically.
+  \item[\textbf{FR9:}] The system shall allow creators to upload an image of a quiz;
+        the system shall use an OCR/Vision API to parse the image and convert it into
+        a structured quiz format.
+  \item[\textbf{FR10:}] The system shall allow creators to add questions of the
+        following types: Single-select MCQ, Multi-select MCQ, True/False, Rating
+        Scale (1--5 or 1--10), and Open-Ended text.
+  \item[\textbf{FR11:}] The system shall allow creators to attach an optional image
+        to any question.
+  \item[\textbf{FR12:}] The system shall allow creators to set a per-question time
+        limit (optional checkbox) and specify the time in seconds; if enabled, a
+        countdown timer is shown during the live session.
+  \item[\textbf{FR13:}] The system shall allow creators to set a base point value for
+        each question (default: 100 points).
+  \item[\textbf{FR14:}] The system shall allow creators to set a difficulty level
+        (1--10) for each question to support adaptive difficulty ordering.
+  \item[\textbf{FR15:}] The system shall allow creators to enable or disable the
+        Adaptive Difficulty checkbox per quiz.
+  \item[\textbf{FR16:}] The system shall allow creators to edit or delete existing
+        quizzes and their questions.
+  \item[\textbf{FR17:}] The system shall support an optional expiry date on quizzes
+        for automatic data cleanup after 7--8~days.
+\end{itemize}
+
+% ── Feature 3 ────────────────────────────────────────────────────────────────
+\subsection{Feature 3: Live Session Management}
+\textbf{Description:} Manages the full lifecycle of a live quiz session from creation
+through completion.
+
+\textbf{Requirements:}
+\begin{itemize}
+  \item[\textbf{FR18:}] The system shall allow a creator to launch a live session
+        from any saved quiz, generating a unique 8-digit numeric join code.
+  \item[\textbf{FR19:}] The system shall display a waiting room (lobby) after session
+        launch where participants can join before the session starts.
+  \item[\textbf{FR20:}] The system shall allow registered participants to join a live
+        session by entering the 8-digit join code.
+  \item[\textbf{FR21:}] The system shall allow late joiners to enter an active session
+        if the creator has enabled the \emph{Allow Late Joiners} setting.
+  \item[\textbf{FR22:}] The system shall allow a disconnected participant to rejoin an
+        active session without losing previously earned points if the creator has
+        enabled the \emph{Allow Rejoin} setting.
+  \item[\textbf{FR23:}] The system shall allow the host to start the session from the
+        waiting room, advancing to the first question and broadcasting it to all
+        participants simultaneously via WebSocket.
+  \item[\textbf{FR24:}] The system shall allow the host to manually advance to the
+        next question (slide-by-slide control); response submission shall be closed
+        for the current question before the next one is displayed.
+  \item[\textbf{FR25:}] The system shall allow the host to pause and resume the
+        session at any time.
+  \item[\textbf{FR26:}] The system shall allow the host to end the session, triggering
+        display of the final leaderboard.
+  \item[\textbf{FR27:}] The system shall automatically expire (invalidate) the
+        8-digit join code and schedule session data for cleanup 7--8~days after the
+        session ends.
+  \item[\textbf{FR28:}] The system shall track the session lifecycle through statuses:
+        \texttt{DRAFT} $\rightarrow$ \texttt{WAITING\_ROOM} $\rightarrow$
+        \texttt{LIVE} $\rightarrow$ \texttt{PAUSED} $\rightarrow$
+        \texttt{COMPLETED}.
+\end{itemize}
+
+% ── Feature 4 ────────────────────────────────────────────────────────────────
+\subsection{Feature 4: Real-Time Question Interaction}
+\textbf{Description:} Handles real-time broadcasting of questions to participants
+and collection of their responses during a live session.
+
+\textbf{Requirements:}
+\begin{itemize}
+  \item[\textbf{FR29:}] The system shall broadcast the current active question to all
+        connected participants simultaneously via WebSocket upon host advancement.
+  \item[\textbf{FR30:}] The system shall render answer input appropriate to the
+        question type: option buttons for MCQ/True-False, a numeric scale for Rating
+        Scale, and a text field for Open-Ended.
+  \item[\textbf{FR31:}] The system shall display a countdown timer to participants
+        for time-limited questions and auto-close response submission when the timer
+        reaches zero.
+  \item[\textbf{FR32:}] The system shall prevent a participant from modifying or
+        resubmitting an answer after it has been submitted for a given question.
+  \item[\textbf{FR33:}] The system shall display a live response count to the host
+        showing how many participants have answered the current question.
+  \item[\textbf{FR34:}] The system shall display the correct answer(s) to all
+        participants after response submission is closed for a question.
+\end{itemize}
+
+% ── Feature 5 ────────────────────────────────────────────────────────────────
+\subsection{Feature 5: Scoring and Leaderboard}
+\textbf{Description:} Manages point calculation per response and maintains a
+real-time leaderboard across the session.
+
+\textbf{Requirements:}
+\begin{itemize}
+  \item[\textbf{FR35:}] The system shall award the full question point value to a
+        participant who submits a correct answer.
+  \item[\textbf{FR36:}] The system shall award zero points to a participant who
+        submits an incorrect answer or does not answer within the time limit.
+  \item[\textbf{FR37:}] The system shall accumulate total scores for each participant
+        across all questions answered in the session, stored in the
+        \texttt{SessionParticipant} record.
+  \item[\textbf{FR38:}] The system shall calculate and update participant leaderboard
+        rankings after each question closes based on total accumulated score.
+  \item[\textbf{FR39:}] The system shall broadcast the updated leaderboard to all
+        participants via WebSocket after each question, displaying rank, name, avatar,
+        and total score.
+  \item[\textbf{FR40:}] The system shall display the final leaderboard to all
+        participants when the host ends the session.
+\end{itemize}
+
+% ── Feature 6 ────────────────────────────────────────────────────────────────
+\subsection{Feature 6: Adaptive Difficulty}
+\textbf{Description:} Optionally adjusts the difficulty of the next question in a
+session based on the live correction rate of the current question.
+
+\textbf{Requirements:}
+\begin{itemize}
+  \item[\textbf{FR41:}] The system shall allow creators to enable the Adaptive
+        Difficulty checkbox per quiz during quiz creation or editing.
+  \item[\textbf{FR42:}] After each question closes, the system shall calculate the
+        correction rate as:
+        \[
+          \text{Correction Rate} = \frac{\text{Number of Correct Responses}}
+                                        {\text{Total Responses}} \times 100\%
+        \]
+  \item[\textbf{FR43:}] If adaptive difficulty is enabled and the correction rate is
+        high (e.g., $\geq 80\%$), the system shall select the next question with a
+        higher difficulty level than the current question.
+  \item[\textbf{FR44:}] If adaptive difficulty is enabled and the correction rate is
+        low (e.g., $\leq 40\%$), the system shall select the next question with a
+        lower difficulty level than the current question.
+  \item[\textbf{FR45:}] If adaptive difficulty is enabled and the correction rate is
+        between the thresholds (40\%--80\%), the system shall select the next question
+        with a similar difficulty level.
+  \item[\textbf{FR46:}] The system shall store the correction rate for each question
+        in each session in the \texttt{QuestionResult} record for analytics purposes.
+\end{itemize}
+
+% ── Feature 7 ────────────────────────────────────────────────────────────────
+\subsection{Feature 7: Analytics and Export}
+\textbf{Description:} Provides per-session and per-question analytics for the creator
+and supports CSV export of session results.
+
+\textbf{Requirements:}
+\begin{itemize}
+  \item[\textbf{FR47:}] The system shall aggregate and store per-question statistics
+        for each session: total responses, correct responses, correction rate (\%),
+        and response option distribution (MCQ) or response data (Rating/Open-Ended).
+  \item[\textbf{FR48:}] The system shall allow the creator to view a session analytics
+        dashboard showing: question-by-question statistics, per-participant responses
+        for each question, and overall session summary.
+  \item[\textbf{FR49:}] The system shall keep individual participant responses private
+        from other participants; only the session creator can view per-participant
+        response data.
+  \item[\textbf{FR50:}] The system shall allow the creator to export full session
+        results as a CSV file with the following columns: Participant Name, Question
+        Text, Question Type, Response Given, Is Correct, Points Earned, Response
+        Time (ms).
+  \item[\textbf{FR51:}] The system shall automatically delete all session data
+        (responses, results, participant records) 7--8~days after the session expiry
+        date to enforce the data retention policy.
+\end{itemize}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Non-Functional Requirements}
+% ─────────────────────────────────────────────────────────────────────────────
+Non-functional requirements define \emph{how well} the system performs rather than
+\emph{what} the system does.
+
+\subsection{Performance Requirements}
+\begin{itemize}
+  \item The system shall respond to HTTP REST API requests within 3~seconds under
+        normal operating conditions.
+  \item The system shall support at least 2--3 concurrent live sessions at MVP scale
+        (scalable independently by the development team later).
+  \item The system shall support up to 50 concurrent participants per live session
+        at MVP scale.
+  \item The system shall broadcast question state updates and leaderboard changes to
+        all participants within 500~milliseconds via WebSocket.
+  \item The system shall evaluate and record each participant's response within
+        1~second of submission.
+\end{itemize}
+
+\subsection{Usability Requirements}
+\begin{itemize}
+  \item The system shall provide a simple and intuitive interface for both creators
+        and participants.
+  \item The system shall allow creators to launch a live session and start presenting
+        questions within 3 steps from the dashboard.
+  \item The system shall allow participants to join a live session by entering the
+        8-digit code within 2 steps from the home screen.
+  \item The system shall clearly display the current question number, total questions,
+        timer (if applicable), and submission status to participants during a live
+        session.
+  \item The system shall minimise the number of steps required for a participant to
+        submit an answer.
+\end{itemize}
+
+\subsection{Security Requirements}
+\begin{itemize}
+  \item The system shall require email and password authentication for all users
+        (both creators and participants).
+  \item The system shall store all passwords as bcrypt-hashed values; plain-text
+        passwords shall never be stored or transmitted.
+  \item The system shall ensure only the authenticated session host can control
+        question progression, pause, resume, or end the session.
+  \item The system shall ensure participant responses are private; only the session
+        creator can view individual participant responses.
+  \item The system shall use HTTPS for all REST API communications and WSS (Secure
+        WebSocket) for all real-time communications.
+  \item The system shall validate and sanitise all user inputs to prevent injection
+        attacks.
+\end{itemize}
+
+\subsection{Reliability Requirements}
+\begin{itemize}
+  \item The system shall maintain session state consistently across the HTTP backend
+        and WebSocket backend servers.
+  \item The system shall persist each participant response to the PostgreSQL database
+        immediately upon submission to prevent data loss in case of server restart or
+        network interruption.
+  \item The system shall handle participant WebSocket disconnections gracefully,
+        preserving all previously earned points and allowing rejoin.
+  \item The system shall use Prisma ORM transactions where necessary to ensure
+        database consistency during concurrent response submissions.
+\end{itemize}
+
+\subsection{Availability Requirements}
+\begin{itemize}
+  \item The system shall be available 24/7 for quiz creation, management, and session
+        hosting.
+  \item Scheduled maintenance shall occur during low-usage periods with prior
+        notification.
+  \item Session join codes and all associated session data (responses, results,
+        participant records) shall be automatically purged 7--8~days after session
+        expiry via a scheduled cleanup job.
+\end{itemize}
+
+\subsection{Maintainability Requirements}
+\begin{itemize}
+  \item The system shall be modular in design, organised as a Turborepo monorepo
+        separating the HTTP REST backend (\texttt{http-backend}), the WebSocket
+        real-time backend (\texttt{ws-backend}), the shared database layer
+        (\texttt{packages/db} with Prisma ORM), and the frontend into independent
+        packages.
+  \item The system shall use Prisma schema migrations to manage all database schema
+        changes in a version-controlled manner.
+  \item The system shall allow easy updates and feature additions to individual
+        packages without affecting other parts of the monorepo.
+\end{itemize}
+
+\subsection{Portability Requirements}
+\begin{itemize}
+  \item The system shall be accessible from any device (desktop or mobile) with a
+        modern web browser that supports WebSocket connections.
+  \item The backend Node.js services shall be deployable on any Node.js-compatible
+        server environment (Windows, Linux, macOS).
+  \item The system shall use environment variables for all configuration (database
+        URL, API keys, ports) to enable easy deployment across different environments.
+\end{itemize}
+
+\subsection{Compliance Requirements}
+\begin{itemize}
+  \item The system shall comply with data privacy requirements by automatically
+        deleting all session data (responses, participant records, results) after the
+        defined retention period (7--8~days from session expiry).
+  \item The system shall store only the minimum required personal data for user
+        accounts: name, email address, and bcrypt-hashed password.
+  \item The system shall not share individual participant response data with other
+        participants; only the session creator has access to per-participant analytics.
+\end{itemize}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\newpage
+\appendix
+\section*{Appendix A: Database Schema Summary}
+\addcontentsline{toc}{section}{Appendix A: Database Schema Summary}
+
+\begin{longtable}{>{\bfseries}p{3.5cm} p{9cm} p{2.5cm}}
+  \toprule
+  \textbf{Model} & \textbf{Purpose} & \textbf{Key Fields} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Model} & \textbf{Purpose} & \textbf{Key Fields} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  User              & Stores all registered users (creators \& participants) & email, passwordHash, role \\[4pt]
+  Quiz              & Template/blueprint for a quiz; reusable across sessions & creatorId, isAIGenerated, enableAdaptiveDifficulty, expiresAt \\[4pt]
+  Question          & Individual question within a quiz & questionType, difficulty, hasTimeLimit, points \\[4pt]
+  Option            & Answer choice for MCQ/True-False questions & isCorrect, order \\[4pt]
+  Session           & Live quiz instance with unique join code & joinCode, status, allowLateJoiners, expiresAt \\[4pt]
+  SessionState      & Real-time state of an active session & currentQuestionIndex, isAcceptingResponses, participantCount \\[4pt]
+  SessionParticipant & Links users to sessions with scoring & totalScore, rank, isActive \\[4pt]
+  Response          & Individual participant answer per question & responseData (JSON), isCorrect, pointsEarned \\[4pt]
+  ResponseOption    & Tracks selected options (multi-select MCQ) & responseId, optionId \\[4pt]
+  QuestionResult    & Aggregated per-question analytics per session & correctionRate, totalResponses, resultData (JSON) \\
+\end{longtable}
+
+\end{document}
