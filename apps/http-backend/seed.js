@@ -6,7 +6,7 @@ function addDays(date, days) {
 }
 
 async function main() {
-  console.log("🌱 Seeding database…\n");
+  console.log("Seeding database...\n");
 
   // ── Clean up (reverse dependency order) ────────────────────────────────
   await prisma.responseOption.deleteMany();
@@ -19,7 +19,7 @@ async function main() {
   await prisma.question.deleteMany();
   await prisma.quiz.deleteMany();
   await prisma.user.deleteMany();
-  console.log("🗑️  Cleaned existing data\n");
+  console.log("Cleaned existing data\n");
 
   // ──────────────────────────────────────────────────────────────────────
   // 1. USERS  (1 creator + 3 participants)
@@ -33,7 +33,7 @@ async function main() {
       role: "USER",
     },
   });
-  console.log(`✅ Creator: ${creator.name} (${creator.email})`);
+  console.log(`Creator: ${creator.name} (${creator.email})`);
 
   const participants = await Promise.all([
     prisma.user.create({
@@ -61,7 +61,7 @@ async function main() {
       },
     }),
   ]);
-  console.log(`✅ Participants: ${participants.map((p) => p.name).join(", ")}`);
+  console.log(`Participants: ${participants.map((p) => p.name).join(", ")}`);
 
   // ──────────────────────────────────────────────────────────────────────
   // 2. QUIZ  (JavaScript Fundamentals — 5 questions, all types)
@@ -76,7 +76,7 @@ async function main() {
       expiresAt: addDays(new Date(), 7),
     },
   });
-  console.log(`✅ Quiz: "${quiz.title}"`);
+  console.log(`Quiz: "${quiz.title}"`);
 
   // ── Q1: Single-select MCQ (Easy) ─────────────────────────────────────
   const q1 = await prisma.question.create({
@@ -100,7 +100,7 @@ async function main() {
     },
     include: { options: true },
   });
-  console.log(`   📝 Q1 [MCQ-Single] "${q1.text}" (4 options)`);
+  console.log(`   Q1 [MCQ-Single] "${q1.text}" (4 options)`);
 
   // ── Q2: Multi-select MCQ (Medium) ────────────────────────────────────
   const q2 = await prisma.question.create({
@@ -125,7 +125,7 @@ async function main() {
     },
     include: { options: true },
   });
-  console.log(`   📝 Q2 [MCQ-Multi]  "${q2.text}" (5 options)`);
+  console.log(`   Q2 [MCQ-Multi]  "${q2.text}" (5 options)`);
 
   // ── Q3: True/False (Easy) ────────────────────────────────────────────
   const q3 = await prisma.question.create({
@@ -147,7 +147,7 @@ async function main() {
     },
     include: { options: true },
   });
-  console.log(`   📝 Q3 [True/False] "${q3.text}" (2 options)`);
+  console.log(`   Q3 [True/False] "${q3.text}" (2 options)`);
 
   // ── Q4: Rating Scale (Medium) ────────────────────────────────────────
   const q4 = await prisma.question.create({
@@ -161,7 +161,7 @@ async function main() {
       points: 0,
     },
   });
-  console.log(`   📝 Q4 [Rating]     "${q4.text}"`);
+  console.log(`   Q4 [Rating]     "${q4.text}"`);
 
   // ── Q5: Open-Ended (Hard) ────────────────────────────────────────────
   const q5 = await prisma.question.create({
@@ -175,7 +175,7 @@ async function main() {
       points: 200,
     },
   });
-  console.log(`   📝 Q5 [Open-Ended] "${q5.text}"\n`);
+  console.log(`   Q5 [Open-Ended] "${q5.text}"\n`);
 
   // ──────────────────────────────────────────────────────────────────────
   // 3. SESSION  (COMPLETED session with join code)
@@ -194,7 +194,7 @@ async function main() {
       expiresAt: addDays(new Date(), 7),
     },
   });
-  console.log(`✅ Session: ${session.joinCode} (${session.status})`);
+  console.log(`Session: ${session.joinCode} (${session.status})`);
 
   // ── Session State ────────────────────────────────────────────────────
   await prisma.sessionState.create({
@@ -206,7 +206,7 @@ async function main() {
       participantCount: 3,
     },
   });
-  console.log("✅ Session state created");
+  console.log("Session state created");
 
   // ──────────────────────────────────────────────────────────────────────
   // 4. SESSION PARTICIPANTS  (all 3 joined)
@@ -225,7 +225,7 @@ async function main() {
     )
   );
   console.log(
-    `✅ Participants joined: ${participants.map((p, i) => `${p.name} (#${sessionParticipants[i].rank}, ${sessionParticipants[i].totalScore}pts)`).join(", ")}`
+    `Participants joined: ${participants.map((p, i) => `${p.name} (#${sessionParticipants[i].rank}, ${sessionParticipants[i].totalScore}pts)`).join(", ")}`
   );
 
   // ──────────────────────────────────────────────────────────────────────
@@ -277,7 +277,7 @@ async function main() {
       selectedOptions: { create: [{ optionId: q1Correct.id }] },
     },
   });
-  console.log("✅ Q1 responses: Alice ✓, Bob ✗, Charlie ✓");
+  console.log("Q1 responses: Alice ✓, Bob ✗, Charlie ✓");
 
   // --- Q2 Responses (Multi-select MCQ) ---
   const q2Opt0 = q2.options.find((o) => o.text === "0");
@@ -344,7 +344,7 @@ async function main() {
       },
     },
   });
-  console.log("✅ Q2 responses: Alice ✓, Bob ✗, Charlie ✓");
+  console.log("Q2 responses: Alice ✓, Bob ✗, Charlie ✓");
 
   // --- Q3 Responses (True/False) ---
   const q3Correct = q3.options.find((o) => o.isCorrect);
@@ -391,7 +391,7 @@ async function main() {
       selectedOptions: { create: [{ optionId: q3Wrong.id }] },
     },
   });
-  console.log("✅ Q3 responses: Alice ✓, Bob ✓, Charlie ✗");
+  console.log("Q3 responses: Alice ✓, Bob ✓, Charlie ✗");
 
   // --- Q4 Responses (Rating Scale — no scoring) ---
   await Promise.all([
@@ -429,7 +429,7 @@ async function main() {
       },
     }),
   ]);
-  console.log("✅ Q4 responses: Alice→8, Bob→5, Charlie→7");
+  console.log("Q4 responses: Alice→8, Bob→5, Charlie→7");
 
   // --- Q5 Responses (Open-Ended) ---
   await Promise.all([
@@ -473,7 +473,7 @@ async function main() {
       },
     }),
   ]);
-  console.log("✅ Q5 responses: All answered (open-ended)\n");
+  console.log("Q5 responses: All answered (open-ended)\n");
 
   // ──────────────────────────────────────────────────────────────────────
   // 6. QUESTION RESULTS  (aggregated analytics per question)
@@ -549,25 +549,25 @@ async function main() {
       },
     }),
   ]);
-  console.log("✅ Question results aggregated for all 5 questions");
+  console.log("Question results aggregated for all 5 questions");
 
   // ──────────────────────────────────────────────────────────────────────
   // DONE
   // ──────────────────────────────────────────────────────────────────────
-  console.log("\n🎉 Seed complete! Summary:");
-  console.log("   👤 Users: 1 creator + 3 participants");
-  console.log("   📋 Quiz: 1 quiz with 5 questions (all 5 types)");
-  console.log("   🎮 Session: 1 completed session (code: 98765432)");
-  console.log("   📊 Responses: 15 total (3 participants × 5 questions)");
-  console.log("   📈 QuestionResults: 5 aggregated results");
+  console.log("\nSeed complete! Summary:");
+  console.log("   Users: 1 creator + 3 participants");
+  console.log("   Quiz: 1 quiz with 5 questions (all 5 types)");
+  console.log("   Session: 1 completed session (code: 98765432)");
+  console.log("   Responses: 15 total (3 participants × 5 questions)");
+  console.log("   QuestionResults: 5 aggregated results");
   console.log(
-    "   🏆 Leaderboard: Alice #1 (350pts), Charlie #2 (300pts), Bob #3 (250pts)"
+    "   Leaderboard: Alice #1 (350pts), Charlie #2 (300pts), Bob #3 (250pts)"
   );
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Seed failed:", e);
+    console.error("Seed failed:", e);
     process.exit(1);
   })
   .finally(() => prisma.$disconnect());
