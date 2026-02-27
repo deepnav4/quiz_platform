@@ -1,35 +1,43 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext.jsx";
+import { SocketProvider } from "./context/SocketContext.jsx";
+import Navbar from "./components/Navbar.jsx";
+
+import LoginPage from "./pages/LoginPage.jsx";
+import SignupPage from "./pages/SignupPage.jsx";
+import DashboardPage from "./pages/DashboardPage.jsx";
+import CreateQuizPage from "./pages/CreateQuizPage.jsx";
+import EditQuizPage from "./pages/EditQuizPage.jsx";
+import JoinPage from "./pages/JoinPage.jsx";
+import WaitingRoomPage from "./pages/WaitingRoomPage.jsx";
+import LiveQuizPage from "./pages/LiveQuizPage.jsx";
+import HostControlPage from "./pages/HostControlPage.jsx";
+import ResultsPage from "./pages/ResultsPage.jsx";
+import LeaderboardPage from "./pages/LeaderboardPage.jsx";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <BrowserRouter>
+      <AuthProvider>
+        <SocketProvider>
+          <Navbar />
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/quiz/create" element={<CreateQuizPage />} />
+            <Route path="/quiz/:quizId/edit" element={<EditQuizPage />} />
+            <Route path="/join" element={<JoinPage />} />
+            <Route path="/session/:sessionId/waiting" element={<WaitingRoomPage />} />
+            <Route path="/session/:sessionId/live" element={<LiveQuizPage />} />
+            <Route path="/session/:sessionId/host" element={<HostControlPage />} />
+            <Route path="/session/:sessionId/results" element={<ResultsPage />} />
+            <Route path="/session/:sessionId/leaderboard" element={<LeaderboardPage />} />
+          </Routes>
+        </SocketProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;
