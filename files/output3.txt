@@ -1,0 +1,204 @@
+PRACTICAL 5
+
+Estimation of Project Metrics
+
+
+
+Objective
+
+Categorize projects using COCOMO, and estimate effort and development time required for a project.
+
+Estimate the program complexity and effort required to recreate it using Halstead's metrics.
+
+
+
+Aim
+
+To understand how to estimate key project parameters such as size, cost, duration, and effort using two established techniques: COCOMO (Constructive Cost Model) and Halstead's complexity metrics. These estimations help in selecting suitable solution strategies and in effective project planning.
+
+
+
+Introduction
+
+After gathering all the requirements specific to the software project, we need to evaluate possible implementation strategies using time, effort, and resource estimates. In this practical, we apply estimation techniques to the project and derive approximate values for schedule and effort.
+
+
+
+Selected Project for Estimation
+
+Project Name: Interactive Quiz Platform
+
+Tech Stack (current):
+- Frontend: React (Vite)
+- Backend: Node.js (HTTP + WebSocket services)
+- Database: PostgreSQL with Prisma ORM
+- Monorepo: Turborepo structure
+
+
+
+Project Size Estimation (LOC-Based)
+
+Method used:
+- Counted source lines from key folders only.
+- Excluded dependency/build folders (node_modules, generated, dist, build, migrations).
+- Included app source and Prisma schema.
+- Applied a planning projection factor for full feature coverage of the defined system scope.
+
+Measured baseline (Estimated from current repository snapshot):
+- Source files considered = 71
+- Baseline source LOC = 1880 lines
+
+Projected implementation size for planning (Estimated):
+- Estimated project LOC for full planned scope = 5800 lines
+- KLOC (estimated) = 5.8 KLOC
+
+Important note on estimation:
+- The projected LOC is used as a planning-size estimate and not as a final delivered LOC value.
+
+
+
+COCOMO Estimation
+
+COCOMO (Basic) formulas:
+
+Effort (Person-Months):
+E = a x (KLOC)^b
+
+Development Time (Months):
+T = c x (E)^d
+
+Average Team Size:
+P = E / T
+
+
+
+Project Category Selection
+
+Based on current scope and implementation status, the project is best approximated as an Organic project because:
+- It is an application-level software system.
+- Team size is expected to be small.
+- Technology stack is standard web stack.
+
+Still, for comparison, all three categories are calculated below.
+
+
+
+COCOMO Constants
+
+Organic: a = 2.4, b = 1.05, c = 2.5, d = 0.38
+
+Semidetached: a = 3.0, b = 1.12, c = 2.5, d = 0.35
+
+Embedded: a = 3.6, b = 1.20, c = 2.5, d = 0.32
+
+
+
+Calculated Results (Using estimated KLOC = 5.8)
+
+1) Organic Model (Recommended for this project)
+- Effort E = 2.4 x (5.8)^1.05 = 15.20 Person-Months (Estimated)
+- Time T = 2.5 x (15.20)^0.38 = 7.03 Months (Estimated)
+- Team Size P = 15.20 / 7.03 = 2.16 persons (Estimated)
+
+2) Semidetached Model
+- Effort E = 21.49 Person-Months (Estimated)
+- Time T = 7.31 Months (Estimated)
+- Team Size P = 2.94 persons (Estimated)
+
+3) Embedded Model
+- Effort E = 29.68 Person-Months (Estimated)
+- Time T = 7.40 Months (Estimated)
+- Team Size P = 4.01 persons (Estimated)
+
+
+
+Interpretation of COCOMO Result
+
+Since the project is primarily a web application and does not involve strict hardware coupling, Organic estimation is the most realistic among the three.
+
+Final COCOMO Estimate for planning (Organic):
+- Effort: approximately 15.20 Person-Months
+- Schedule: approximately 7.03 Months
+- Average team: 2 to 3 developers
+
+
+
+Halstead Complexity Metrics
+
+Halstead uses operators and operands in source code to estimate complexity.
+
+Primary parameters:
+- n1 = number of unique operators
+- n2 = number of unique operands
+- N1 = total operators
+- N2 = total operands
+
+Derived metrics:
+- Program Length: N = N1 + N2
+- Program Vocabulary: n = n1 + n2
+- Volume: V = N x log2(n)
+- Difficulty: D = (n1 x N2) / (2 x n2)
+- Effort: E = D x V
+- Time to implement: T = E / 18 seconds
+
+
+
+Halstead Sample Selection
+
+File selected: apps/http-backend/seed.js
+
+Reason:
+- It is one of the largest implemented files in current codebase.
+- Contains meaningful program structure, object creation, and workflow logic.
+
+Important estimation note:
+- Halstead values below are estimated using automated token parsing (comments/strings normalized).
+- Exact values can vary slightly based on tokenizer rules.
+
+
+
+Estimated Halstead Inputs (for selected file)
+
+- n1 = 16
+- n2 = 163
+- N1 = 1695
+- N2 = 1128
+
+
+
+Estimated Halstead Outputs
+
+- Program Length N = 2823
+- Program Vocabulary n = 179
+- Volume V = 21126.81
+- Difficulty D = 55.36
+- Effort E = 1169621.78
+- Time T = 64978.99 seconds
+- Time T (minutes) = 1082.98 minutes
+
+
+
+Interpretation of Halstead Result
+
+The selected file shows high logical volume because it combines many operations and domain values in one place. This indicates relatively high cognitive load for manual recreation.
+
+Note:
+- This Halstead result is for one representative file, not the entire project.
+- If required, project-level Halstead can be derived by combining token counts from all implementation files.
+
+
+
+Final Conclusion
+
+Using projected full-scope size and standard estimation formulas, the project is currently best categorized as Organic in COCOMO terms.
+
+Final planning values (Estimated):
+- Size: 5.8 KLOC
+- Effort: 15.20 Person-Months
+- Duration: 7.03 Months
+- Team size: around 2-3 developers
+
+Halstead analysis on a representative backend file indicates moderate-to-high implementation complexity, reinforcing the need for modular design, code reviews, and incremental delivery.
+
+
+

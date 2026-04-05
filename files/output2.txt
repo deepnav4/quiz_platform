@@ -1,0 +1,425 @@
+PRACTICAL 4
+
+E-R Modeling from the Problem Statements
+
+Objective: Identify entity sets, their attributes, and various relationships.
+
+Represent the data model through an ER diagram.
+
+
+
+Aim: To understand how to conceptually model a database using Entity-Relationship (ER) diagrams. By analyzing a given problem statement, we learn to identify entities, their attributes, and the relationships among them, which forms the foundation for building a well-structured database.
+
+Introduction
+
+Developing databases is a very important task to develop a system. Before going to form exact database tables and establishing relationships between them, we conceptually or logically can model our database using ER diagrams.
+
+In this experiment we will learn how to find the entities, their attributes, and how the relationships between the entities can be established for a system.
+
+
+
+Entity Relationship Model
+
+The entity-relationship model represents a logical design of a database to be created. In the ER model, real-world objects (or concepts) are abstracted as entities, and different possible associations among them are modeled as relationships.
+
+For this practical, the selected problem domain is an interactive quiz platform with users, quizzes, live sessions, responses, leaderboard updates, and analytics.
+
+
+
+Problem Statement: Interactive Quiz Platform
+
+The system is a real-time quiz application where registered users can create quizzes, host live sessions, and participate in quizzes using an 8-digit join code. A creator can prepare quizzes manually, by AI prompt, or by image scan. Each quiz contains multiple questions, and questions may contain options depending on question type.
+
+When a host starts a session, participants join using the join code and submit responses in real time. The system calculates points, maintains ranks, and updates leaderboard data. It also stores detailed question-wise result analytics including correction rate and response distributions.
+
+The data model must support user authentication, quiz lifecycle, session lifecycle, participant tracking, response tracking, and analytics generation.
+
+
+
+Identified Entity Sets
+
+1. User
+2. Quiz
+3. Question
+4. Option
+5. Session
+6. SessionState
+7. SessionParticipant
+8. Response
+9. ResponseOption
+10. QuestionResult
+
+
+
+Attributes of Entity Sets
+
+User
+- id (PK)
+- email (Unique)
+- passwordHash
+- name
+- avatar
+- role
+- createdAt
+- updatedAt
+
+Quiz
+- id (PK)
+- title
+- description
+- creatorId (FK -> User.id)
+- isAIGenerated
+- aiPrompt
+- isScannedFromImage
+- scannedImageUrl
+- enableAdaptiveDifficulty
+- expiresAt
+- createdAt
+- updatedAt
+
+Question
+- id (PK)
+- quizId (FK -> Quiz.id)
+- questionType
+- text
+- imageUrl
+- order
+- difficulty
+- hasTimeLimit
+- timeLimitSeconds
+- points
+- createdAt
+- updatedAt
+
+Option
+- id (PK)
+- questionId (FK -> Question.id)
+- text
+- imageUrl
+- isCorrect
+- order
+- createdAt
+- updatedAt
+
+Session
+- id (PK)
+- quizId (FK -> Quiz.id)
+- hostId (FK -> User.id)
+- joinCode (Unique)
+- status
+- currentQuestionId
+- allowLateJoiners
+- allowRejoin
+- startedAt
+- endedAt
+- expiresAt
+- createdAt
+- updatedAt
+
+SessionState
+- id (PK)
+- sessionId (FK -> Session.id, Unique)
+- currentQuestionIndex
+- questionStartedAt
+- isAcceptingResponses
+- participantCount
+- updatedAt
+
+SessionParticipant
+- id (PK)
+- sessionId (FK -> Session.id)
+- userId (FK -> User.id)
+- joinedAt
+- lastSeenAt
+- isActive
+- totalScore
+- rank
+- Unique(sessionId, userId)
+
+Response
+- id (PK)
+- sessionId (FK -> Session.id)
+- questionId (FK -> Question.id)
+- participantId (FK -> User.id)
+- responseData (JSON)
+- answeredAt
+- responseTimeMs
+- isCorrect
+- pointsEarned
+- Unique(sessionId, questionId, participantId)
+
+ResponseOption
+- id (PK)
+- responseId (FK -> Response.id)
+- optionId (FK -> Option.id)
+- createdAt
+- Unique(responseId, optionId)
+
+QuestionResult
+- id (PK)
+- sessionId (FK -> Session.id)
+- questionId (FK -> Question.id)
+- totalResponses
+- correctResponses
+- correctionRate
+- averageResponseTimeMs
+- resultData (JSON)
+- calculatedAt
+- Unique(sessionId, questionId)
+
+
+
+Relationship Set with Cardinalities
+
+1. User creates Quiz
+- One User can create many Quiz records.
+- Each Quiz belongs to exactly one User (creator).
+- Cardinality: 1:N
+
+2. Quiz contains Question
+- One Quiz can contain many Questions.
+- Each Question belongs to one Quiz.
+- Cardinality: 1:N
+
+3. Question has Option
+- One Question can have many Options.
+- Each Option belongs to one Question.
+- Cardinality: 1:N
+
+4. User hosts Session
+- One User can host many Sessions.
+- Each Session has exactly one host User.
+- Cardinality: 1:N
+
+5. Quiz is used to create Session
+- One Quiz can be used in many Sessions.
+- Each Session uses one Quiz.
+- Cardinality: 1:N
+
+6. Session has SessionState
+- One Session has at most one SessionState.
+- Each SessionState belongs to exactly one Session.
+- Cardinality: 1:1
+
+7. User participates in Session (through SessionParticipant)
+- One User can participate in many Sessions.
+- One Session has many participating Users.
+- Implemented using associative entity SessionParticipant.
+- Cardinality: M:N resolved into two 1:N relationships.
+
+8. Participant submits Response
+- One Session has many Responses.
+- One Question can have many Responses.
+- One User (participant) can submit many Responses across sessions/questions.
+- Business constraint: one response per participant per question per session.
+
+9. Response selects Option (through ResponseOption)
+- One Response can map to many Options (multi-select).
+- One Option can be selected by many Responses.
+- Cardinality: M:N resolved by ResponseOption.
+
+10. Session stores QuestionResult
+- One Session has many QuestionResult entries.
+- One Question can appear in many session-level QuestionResult entries.
+- Unique pair (sessionId, questionId).
+
+
+
+Keys and Constraints
+
+Primary Keys
+- Every entity uses id as primary key.
+
+Candidate/Alternate Keys
+- User.email is unique.
+- Session.joinCode is unique.
+
+Composite Unique Constraints
+- SessionParticipant(sessionId, userId)
+- Response(sessionId, questionId, participantId)
+- ResponseOption(responseId, optionId)
+- QuestionResult(sessionId, questionId)
+
+Foreign Key Constraints
+- Enforced across all child entities for referential integrity.
+
+
+
+Generalization and Specialization
+
+User is a generalized entity.
+
+Specialized conceptual roles:
+- Creator (User who creates quizzes and hosts sessions)
+- Participant (User who joins sessions and submits responses)
+- Admin (User with elevated role)
+
+The specialization is represented through role and relationships rather than separate physical tables.
+
+
+
+Weak / Dependent Entities
+
+The following entities are existence-dependent on parent entities and can be treated as weak in conceptual understanding:
+
+- SessionState depends on Session.
+- SessionParticipant depends on Session and User.
+- ResponseOption depends on Response and Option.
+- QuestionResult depends on Session and Question.
+
+
+
+Textual ER Diagram Summary
+
+User (1) ----< (N) Quiz
+User (1) ----< (N) Session [hosts]
+Quiz (1) ----< (N) Question
+Question (1) ----< (N) Option
+Quiz (1) ----< (N) Session
+Session (1) ---- (1) SessionState
+User (N) >----< (N) Session [via SessionParticipant]
+Session (1) ----< (N) Response
+Question (1) ----< (N) Response
+User (1) ----< (N) Response [participant]
+Response (N) >----< (N) Option [via ResponseOption]
+Session (1) ----< (N) QuestionResult
+Question (1) ----< (N) QuestionResult
+
+
+
+How to Generate ER Diagram Image from Your Project
+
+Option A: Generate directly from Prisma schema (recommended)
+
+1) Install ERD generator package in repo root
+
+npm install -D prisma-erd-generator
+
+2) Add ERD generator block in Prisma schema (temporary or permanent)
+
+generator erd {
+	provider = "prisma-erd-generator"
+	output   = "./ERD.svg"
+}
+
+3) Run generate command from repo root
+
+npx prisma generate --schema packages/db/prisma/schema.prisma
+
+4) Output file will be created at
+
+packages/db/prisma/ERD.svg
+
+You can then insert this image into your report.
+
+
+
+Option B: Use Mermaid ER diagram text and export PNG/SVG
+
+Use the following Mermaid code in mermaid visualizers:
+
+erDiagram
+	USER ||--o{ QUIZ : creates
+	USER ||--o{ SESSION : hosts
+	QUIZ ||--o{ QUESTION : contains
+	QUESTION ||--o{ OPTION : has
+	QUIZ ||--o{ SESSION : used_for
+	SESSION ||--|| SESSION_STATE : has
+	USER ||--o{ SESSION_PARTICIPANT : joins
+	SESSION ||--o{ SESSION_PARTICIPANT : includes
+	SESSION ||--o{ RESPONSE : receives
+	QUESTION ||--o{ RESPONSE : answered_by
+	USER ||--o{ RESPONSE : submits
+	RESPONSE ||--o{ RESPONSE_OPTION : selects
+	OPTION ||--o{ RESPONSE_OPTION : chosen_in
+	SESSION ||--o{ QUESTION_RESULT : has
+	QUESTION ||--o{ QUESTION_RESULT : summarized_in
+
+	USER {
+		string id PK
+		string email UK
+		string passwordHash
+		string name
+		string role
+	}
+	QUIZ {
+		string id PK
+		string creatorId FK
+		string title
+		boolean enableAdaptiveDifficulty
+	}
+	QUESTION {
+		string id PK
+		string quizId FK
+		string questionType
+		int points
+	}
+	OPTION {
+		string id PK
+		string questionId FK
+		boolean isCorrect
+	}
+	SESSION {
+		string id PK
+		string quizId FK
+		string hostId FK
+		string joinCode UK
+		string status
+	}
+	SESSION_STATE {
+		string id PK
+		string sessionId FK_UK
+		int currentQuestionIndex
+	}
+	SESSION_PARTICIPANT {
+		string id PK
+		string sessionId FK
+		string userId FK
+		int totalScore
+	}
+	RESPONSE {
+		string id PK
+		string sessionId FK
+		string questionId FK
+		string participantId FK
+		boolean isCorrect
+		int pointsEarned
+	}
+	RESPONSE_OPTION {
+		string id PK
+		string responseId FK
+		string optionId FK
+	}
+	QUESTION_RESULT {
+		string id PK
+		string sessionId FK
+		string questionId FK
+		float correctionRate
+	}
+
+Websites for Mermaid ER visualization:
+- https://mermaid.live
+- https://www.draw.io (Insert -> Advanced -> Mermaid)
+
+
+
+Option C: Draw manually with database-design websites
+
+You can also model the same schema in:
+- https://dbdiagram.io
+- https://drawsql.app
+- https://www.lucidchart.com
+- https://www.figma.com (with ER templates)
+
+For academic submission, export as SVG or PNG and paste the image in your report.
+
+
+
+Conclusion
+
+By analyzing the problem statement and Prisma schema, we identified the core entities, attributes, keys, and relationship cardinalities required to model the system database. The ER model maps cleanly to normalized relational tables and supports real-time quiz operations, scoring, participation tracking, and analytics generation.
+
+Hence, the ER model is complete and ready for implementation and visualization.
+
+
+

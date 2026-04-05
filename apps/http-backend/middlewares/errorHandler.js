@@ -1,3 +1,9 @@
 export function errorHandler(err, req, res, next) {
-  // TODO: log error, send appropriate status code and message
+  console.error(err);
+
+  const statusCode = err?.statusCode || err?.status || 500;
+  const message =
+    statusCode >= 500 ? "Internal server error" : err?.message || "Request failed";
+
+  res.status(statusCode).json({ message });
 }

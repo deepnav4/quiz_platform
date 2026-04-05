@@ -1,0 +1,226 @@
+PRACTICAL 3
+
+Identifying Domain Classes from a Problem Statement
+
+Objective: To understand the concept of domain classes and learn how to identify potential domain classes from a given problem statement using standard object identification techniques.
+
+
+
+Aim of the Practical: The aim of this practical is to analyze a narrative problem statement and identify the key objects (domain classes) that represent the structure of the system before moving towards design and implementation.
+
+
+
+Introduction
+
+In object-oriented software development, identifying the right classes is a crucial activity during the analysis phase. Classes represent the real-world entities involved in a system and form the foundation for design models such as class diagrams.
+
+A domain class represents a key concept, object, or entity that exists in the problem domain. Correct identification of domain classes helps in better understanding of the system requirements and reduces errors during later stages of development.
+
+
+
+Domain Classes
+
+In the object-oriented paradigm, the Domain Object Model plays a vital role in understanding the problem space. Domain classes are abstractions of real-world entities, ideas, or concepts described in the problem statement.
+
+Domain classes are:
+
+Independent of implementation details
+
+Identified during requirement analysis
+
+Used to model business activities of the system
+
+Traditional Techniques for Identification of Classes
+
+Grammatical Approach Using Nouns
+
+This object identification technique was proposed by Russell J. Abbot, and Grady Booch made the technique popular. This technique involves grammatical analysis of the problem statement to identify list of potential classes. The logical steps are:
+
+Obtain the user requirements (problem statement) as a simple, descriptive English text. This basically corresponds to the use-case diagram for the problem statement.
+
+Identify and mark the nouns, pronouns and noun phrases from the above problem statements
+
+List of potential classes is obtained based on the category of the nouns (details given later). For example, nouns that direct refer to any person, place, or entity in general, correspond to different objects. And so does singular proper nouns. On the other hand, plural nouns and common nouns are candidates that usually map into classes.
+
+
+
+Advantages
+
+This is one of the simplest approaches that could be easily understood and applied by a larger section of the user base. The problem statement does not necessarily be in English, but in any other language.
+
+Disadvantages
+
+The problem statement always may not help towards correct identification of a class. At times it could give us redundant classes. At times the problem statement may use abbreviations for large systems or concepts, and therefore, the identified class may actually point to an aggregate of classes. In other words, it may not find all the objects.
+
+Using Generalization
+
+In this approach, all potential objects are classified into different groups based on some common behaviour. Classes are derived from these groups.
+
+Using Subclasses
+
+Here, instead of identifying objects one goes for identification of classes based on some similar characteristics. These are the specialized classes. Common characteristics are taken from them to form the higher level generalized classes.
+
+Steps to Identify Domain Classes from Problem Statement
+
+We now present the steps to identify domain classes from a given problem statement. This approach is mostly based on the "Grammatical approach using nouns" discussed above, with some insights from [i].
+
+Make a list of potential objects by finding out the nouns and noun phrases from narrative problem statement
+
+Apply subject matter expertise (or domain knowledge) to identify additional classes
+
+Filter out the redundant or irrelevant classes
+
+Classify all potential objects based on categories. We follow the category table as described by Ross (table 5-3, pg 88, [1])
+
+Categories Explanation
+
+PeopleHumans who carry out some function
+
+PlacesAreas set aside for people or things
+
+ThingsPhysical objects
+
+OrganizationsCollection of people, resources, facilities and capabilities having a defined mission
+
+ConceptsPrinciples or Ideas not tangible
+
+EventsThings that happen (usually at a given date and time), or as a steps in an ordered sequence
+
+Group the objects based on similar attributes. While grouping we should remember that:
+
+Different nouns (or noun phrases) can actually refer to the same thing (examples: house, home, abode)
+
+Same nouns (or noun phrases) could refer to different things or concepts (example: I go to school every day / This school of thought agrees with the theory)
+
+Give related names to each group to generate the final list of top level classes
+
+Iterate over to refine the list of classes
+
+
+
+Problem Statement: Interactive Quiz Platform
+
+As the learning and engagement needs of classrooms, training programs, and online events are increasing, it is proposed to develop an interactive quiz platform. The platform enables registered creators to create quizzes manually, generate quizzes from AI prompts, or extract quiz content from uploaded images using OCR. The creator can configure question types, points, optional timers, and adaptive difficulty settings.
+
+The system allows registered participants to join a live quiz session using a unique 8-digit join code. After joining the waiting room, participants receive questions in real time and submit responses through a web interface. The host controls session flow by starting the quiz, moving question by question, pausing or resuming the session, and ending the session.
+
+The platform evaluates responses, updates participant scores, and broadcasts a live leaderboard after each question. The platform also stores session analytics such as question-wise correction rate, response distribution, and participant-level performance. At the end of the session, the creator can view detailed results and export data in CSV format.
+
+The final deliverable is a web application with REST and WebSocket backends in a monorepo architecture. The platform must support secure authentication, role-based access, and safe handling of confidential information such as passwords and tokens.
+
+
+
+Identified Nouns and Noun Phrases
+
+- Learning
+- Engagement
+- Classrooms
+- Training programs
+- Online events
+- Quiz Platform
+- Creators
+- Participants
+- Quiz
+- AI prompt
+- Image
+- OCR
+- Question
+- Question type
+- Points
+- Timer
+- Adaptive difficulty
+- Session
+- Join code
+- Waiting room
+- Host
+- Response
+- Score
+- Leaderboard
+- Analytics
+- Correction rate
+- Response distribution
+- Performance
+- CSV export
+- Web application
+- REST backend
+- WebSocket backend
+- Monorepo
+- Authentication
+- Role
+- Password
+- Token
+
+
+
+Categorization of Nouns
+
+People
+- Creators
+- Participants
+- Host
+
+Places
+- Classrooms
+- Waiting room
+- Online events
+
+Things
+- Quiz
+- Question
+- Image
+- Join code
+- Response
+- Score
+- Leaderboard
+- CSV export
+- Password
+- Token
+
+Organizations
+- Training programs
+
+Concepts
+- Quiz Platform
+- AI prompt
+- OCR
+- Adaptive difficulty
+- Analytics
+- Correction rate
+- Response distribution
+- Authentication
+- Role-based access
+- Monorepo architecture
+
+Events
+- Session start
+- Question broadcast
+- Response submission
+- Leaderboard update
+- Session pause/resume/end
+
+The nouns and noun phrases in the problem statement give a large set of potential classes. However, all of them may not be relevant as domain classes. For example, terms such as "learning", "engagement", and "classrooms" provide context but do not directly represent core business entities in the platform. In a similar way, broad terms like "web application" and "architecture" describe implementation context rather than direct domain objects.
+
+If we filter these entries, we find that the following classes directly relate to the business activities of the platform:
+
+- User
+- Quiz
+- Question
+- Option
+- Session
+- SessionParticipant
+- Response
+- QuestionResult
+- LeaderboardEntry
+
+Although not always explicitly written in a short problem statement, based on domain knowledge and project requirements we can identify additional useful classes:
+
+- AuthToken
+- JoinCode
+- AdaptiveRule
+- ExportReport
+- SessionState
+
+Among these classes, "Creator" and "Participant" are specialized categories of "User". Also, "Question" can have specialized variants based on question type such as SingleSelectQuestion, MultiSelectQuestion, TrueFalseQuestion, RatingQuestion, and OpenEndedQuestion. The above identified conceptual classes provide a strong foundation for design models (class diagram, sequence diagram) and implementation in the project.
+
+
+

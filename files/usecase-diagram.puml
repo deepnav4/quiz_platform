@@ -1,0 +1,112 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor User
+actor Creator
+actor Participant
+actor Admin
+actor "AI Service" as AI
+actor "OCR Service" as OCR
+
+User <|-- Creator
+User <|-- Participant
+
+rectangle "Quiz System" {
+	usecase "Register Account" as UC_Register
+	usecase "Login" as UC_Login
+	usecase "Logout" as UC_Logout
+	usecase "View Profile" as UC_Profile
+
+	usecase "Create Quiz" as UC_CreateQuiz
+	usecase "Edit Quiz" as UC_EditQuiz
+	usecase "Delete Quiz" as UC_DeleteQuiz
+	usecase "Add Question" as UC_AddQuestion
+	usecase "Configure Timer/Points/Difficulty" as UC_Config
+	usecase "Enable Adaptive Difficulty" as UC_Adaptive
+	usecase "Generate Quiz from AI Prompt" as UC_GenAI
+	usecase "Generate Quiz from Image Scan" as UC_GenOCR
+
+	usecase "Launch Session" as UC_Launch
+	usecase "View Waiting Room" as UC_Wait
+	usecase "Start Session" as UC_Start
+	usecase "Advance Question" as UC_Next
+	usecase "Pause Session" as UC_Pause
+	usecase "Resume Session" as UC_Resume
+	usecase "End Session" as UC_End
+
+	usecase "Join Session via Join Code" as UC_Join
+	usecase "Rejoin Session" as UC_Rejoin
+	usecase "View Current Question" as UC_ViewQ
+	usecase "Submit Response" as UC_Submit
+	usecase "View Correct Answer" as UC_Correct
+	usecase "View Live Score/Rank" as UC_LiveRank
+	usecase "View Final Leaderboard" as UC_FinalBoard
+
+	usecase "View Live Response Count" as UC_ResponseCount
+	usecase "View Leaderboard" as UC_Leaderboard
+	usecase "View Session Analytics" as UC_Analytics
+	usecase "Export Results (CSV)" as UC_Export
+
+	usecase "Manage Users" as UC_ManageUsers
+	usecase "Manage Quizzes/Sessions" as UC_ManageQS
+	usecase "Monitor System Health" as UC_Monitor
+}
+
+Creator -- UC_Register
+Creator -- UC_Login
+Creator -- UC_Logout
+Creator -- UC_Profile
+Creator -- UC_CreateQuiz
+Creator -- UC_EditQuiz
+Creator -- UC_DeleteQuiz
+Creator -- UC_AddQuestion
+Creator -- UC_Config
+Creator -- UC_Adaptive
+Creator -- UC_GenAI
+Creator -- UC_GenOCR
+Creator -- UC_Launch
+Creator -- UC_Wait
+Creator -- UC_Start
+Creator -- UC_Next
+Creator -- UC_Pause
+Creator -- UC_Resume
+Creator -- UC_End
+Creator -- UC_ResponseCount
+Creator -- UC_Leaderboard
+Creator -- UC_Analytics
+Creator -- UC_Export
+
+Participant -- UC_Register
+Participant -- UC_Login
+Participant -- UC_Logout
+Participant -- UC_Profile
+Participant -- UC_Join
+Participant -- UC_Rejoin
+Participant -- UC_ViewQ
+Participant -- UC_Submit
+Participant -- UC_Correct
+Participant -- UC_LiveRank
+Participant -- UC_FinalBoard
+
+Admin -- UC_ManageUsers
+Admin -- UC_ManageQS
+Admin -- UC_Monitor
+
+AI -- UC_GenAI
+OCR -- UC_GenOCR
+
+UC_CreateQuiz .> UC_Login : <<include>>
+UC_EditQuiz .> UC_Login : <<include>>
+UC_DeleteQuiz .> UC_Login : <<include>>
+UC_Launch .> UC_Login : <<include>>
+UC_Submit .> UC_Join : <<include>>
+UC_Export .> UC_Analytics : <<include>>
+
+UC_Rejoin .> UC_Join : <<extend>>
+UC_Pause .> UC_Start : <<extend>>
+UC_Resume .> UC_Pause : <<extend>>
+UC_Correct .> UC_Submit : <<extend>>
+UC_Adaptive .> UC_Config : <<extend>>
+
+@enduml
