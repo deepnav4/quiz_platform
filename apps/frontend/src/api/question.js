@@ -1,17 +1,28 @@
-import { apiRequest } from "./client.js";
+import { apiRequest } from './client.js';
 
-export async function addQuestion(quizId, data) {
-  // TODO: POST /quizzes/:quizId/questions
+export function createQuestion(quizId, data) {
+  return apiRequest(`/quizzes/${quizId}/questions`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
-export async function updateQuestion(quizId, questionId, data) {
-  // TODO: PUT /quizzes/:quizId/questions/:questionId
+export function updateQuestion(quizId, questionId, data) {
+  return apiRequest(`/quizzes/${quizId}/questions/${questionId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
 }
 
-export async function deleteQuestion(quizId, questionId) {
-  // TODO: DELETE /quizzes/:quizId/questions/:questionId
+export function deleteQuestion(quizId, questionId) {
+  return apiRequest(`/quizzes/${quizId}/questions/${questionId}`, {
+    method: 'DELETE',
+  });
 }
 
-export async function reorderQuestions(quizId, orderedIds) {
-  // TODO: PUT /quizzes/:quizId/questions/reorder
+export function reorderQuestions(quizId, orderedIds) {
+  return apiRequest(`/quizzes/${quizId}/questions/reorder`, {
+    method: 'PUT',
+    body: JSON.stringify({ orderedIds }),
+  });
 }

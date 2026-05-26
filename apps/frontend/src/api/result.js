@@ -1,13 +1,13 @@
-import { apiRequest } from "./client.js";
+import { apiRequest } from './client.js';
 
-export async function getSessionResults(sessionId) {
-  // TODO: GET /results/:sessionId
+export function getResults(sessionId) {
+  return apiRequest(`/results/${sessionId}`);
 }
 
-export async function getLeaderboard(sessionId) {
-  // TODO: GET /results/:sessionId/leaderboard
+export function getLeaderboard(sessionId) {
+  return apiRequest(`/results/${sessionId}/leaderboard`);
 }
 
-export async function getQuestionResult(sessionId, questionId) {
-  // TODO: GET /results/:sessionId/questions/:questionId
+export function getQuestionResult(sessionId, questionId) {
+  return apiRequest(`/results/${sessionId}/questions/${questionId}`);
 }

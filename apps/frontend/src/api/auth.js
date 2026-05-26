@@ -1,13 +1,19 @@
-import { apiRequest } from "./client.js";
+import { apiRequest } from './client.js';
 
-export async function signup(email, password, name) {
-  // TODO: POST /auth/signup
+export function signup(email, password, name) {
+  return apiRequest('/auth/signup', {
+    method: 'POST',
+    body: JSON.stringify({ email, password, name }),
+  });
 }
 
-export async function login(email, password) {
-  // TODO: POST /auth/login
+export function login(email, password) {
+  return apiRequest('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
 }
 
-export async function getMe() {
-  // TODO: GET /auth/me
+export function getMe() {
+  return apiRequest('/auth/me');
 }

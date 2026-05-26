@@ -1,9 +1,12 @@
+import jwt from "jsonwebtoken";
 import { config } from "../config/index.js";
 
 export function signToken(payload) {
-  // TODO: sign JWT with payload and config.jwtSecret
+  return jwt.sign(payload, config.jwtSecret, {
+    expiresIn: config.jwtExpiresIn,
+  });
 }
 
 export function verifyToken(token) {
-  // TODO: verify JWT, return decoded payload or throw
+  return jwt.verify(token, config.jwtSecret);
 }

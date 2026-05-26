@@ -1,5 +1,23 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const API_BASE = 'http://localhost:3000/api';
 
 export async function apiRequest(endpoint, options = {}) {
-  // TODO: fetch wrapper — attach Authorization header, parse JSON, handle errors
+  const token = localStorage.getItem('token');
+  const headers = { 'Content-Type': 'application/json', ...options.headers };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    const msg = (data && data.message) || (data && data.error) || `Request failed with status ${res.status}`;
+    throw new Error(msg);
+  }
+
+  return data;
 }

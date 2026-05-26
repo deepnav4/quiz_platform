@@ -1,21 +1,31 @@
-import { apiRequest } from "./client.js";
+import { apiRequest } from './client.js';
 
-export async function createSession(quizId, settings) {
-  // TODO: POST /sessions
+export function createSession(data) {
+  return apiRequest('/sessions', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
-export async function getSession(sessionId) {
-  // TODO: GET /sessions/:sessionId
+export function getSession(sessionId) {
+  return apiRequest(`/sessions/${sessionId}`);
 }
 
-export async function joinSession(joinCode) {
-  // TODO: POST /sessions/join
+export function joinSession(joinCode) {
+  return apiRequest('/sessions/join', {
+    method: 'POST',
+    body: JSON.stringify({ joinCode }),
+  });
 }
 
-export async function startSession(sessionId) {
-  // TODO: PUT /sessions/:sessionId/start
+export function startSession(sessionId) {
+  return apiRequest(`/sessions/${sessionId}/start`, {
+    method: 'PUT',
+  });
 }
 
-export async function endSession(sessionId) {
-  // TODO: PUT /sessions/:sessionId/end
+export function endSession(sessionId) {
+  return apiRequest(`/sessions/${sessionId}/end`, {
+    method: 'PUT',
+  });
 }

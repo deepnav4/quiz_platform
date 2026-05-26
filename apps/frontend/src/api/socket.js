@@ -1,13 +1,25 @@
-const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8080";
+const WS_URL = 'ws://localhost:8080';
 
 export function createSocket(token) {
-  // TODO: create WebSocket connection with token as query param
+  return new WebSocket(`${WS_URL}?token=${token}`);
 }
 
 export function sendMessage(socket, type, data) {
-  // TODO: send JSON message { type, data } over socket
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type, data }));
+  }
 }
 
 export function onMessage(socket, callback) {
-  // TODO: listen for messages, parse JSON, call callback(type, data)
+  if (!socket) return () => {};
+  const handler = (event) => {
+    try {
+      const msg = JSON.parse(event.data);
+      callback(msg);
+    } catch (e) {
+      console.error('Failed to parse WS message', e);
+    }
+  };
+  socket.addEventListener('message', handler);
+  return () => socket.removeEventListener('message', handler);
 }
