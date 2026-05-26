@@ -1,13 +1,13 @@
-const TOKEN_KEY = "quiz_app_token";
+const TOKEN_KEY = "token";
 
 export function getToken() {
-  // TODO: return token from localStorage
+  return localStorage.getItem(TOKEN_KEY);
 }
 
 export function setToken(token) {
-  // TODO: save token to localStorage
+  localStorage.setItem(TOKEN_KEY, token);
 }
 
 export function removeToken() {
-  // TODO: remove token from localStorage
+  localStorage.removeItem(TOKEN_KEY);
 }

@@ -1,7 +1,13 @@
 export function formatTime(seconds) {
-  // TODO: convert seconds to "0:15" or "1:30" format
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 export function formatDate(dateString) {
-  // TODO: convert ISO date to readable format
+  if (!dateString) return '';
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
 }
