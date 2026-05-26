@@ -1,336 +1,327 @@
 PRACTICAL 6
 
-Use Case Modeling from the Problem Statement
+Use Case Modeling from the Problem Statement (Very Detailed)
 
+OBJECTIVE
 
+1. Identify every actor from a problem statement.
+2. Identify every use case (services/functions of system).
+3. Decide relationship types: association, include, extend, generalization.
+4. Draw a proper UML use case diagram using correct symbols:
+   - Actor -> stick figure (outside system)
+   - Use case -> oval/circle (inside system)
+   - System boundary -> rectangle
+   - Relationships -> lines/arrows with labels
 
-Objective
+AIM
 
-How to identify different actors and use cases from a given problem statement.
+To create a complete UML use case model for an Interactive Quiz Platform with correct actor identification, use case identification, and relationship mapping.
 
-How to associate use cases with different types of relationships.
+INTRODUCTION
 
-How to draw a use-case diagram.
+A UML use case diagram shows:
+- Who uses the system (actors)
+- What services the system provides (use cases)
+- How use cases are connected (include, extend)
+- How actors are specialized (generalization)
 
+PROBLEM STATEMENT (INTERPRETED)
 
+The platform allows creators to build quizzes, host live sessions, and control flow. Participants join via 8-digit code and answer in real time. The system computes score, updates leaderboard, stores analytics, and exports results.
 
-Aim
+STEP 1: DEFINE SYSTEM BOUNDARY (RECTANGLE)
 
-To understand how use cases and actors can be captured from a problem statement, and how different use cases are related within a system. Use case diagrams provide a common understanding for end-users, developers, and domain experts by graphically presenting the system functionality and its interactions with external entities.
+System name: Interactive Quiz Platform
+Draw one large rectangle and label it exactly as above.
 
+Rule:
+- Inside rectangle: use cases
+- Outside rectangle: actors
 
+STEP 2: IDENTIFY ALL ACTORS
 
-Introduction
-
-A use case diagram provides a high-level behavioral view of a system. It captures who uses the system (actors), what services are provided (use cases), and how use cases are connected through include, extend, and generalization relationships.
-
-In this practical, use case modeling is performed for an interactive quiz platform.
-
-
-
-Subject (System Boundary)
-
-System under consideration: Interactive Quiz Platform
-
-System boundary includes:
-- User authentication and account management
-- Quiz creation and editing
-- AI/OCR-assisted quiz generation
-- Live session hosting and joining
-- Real-time response handling and leaderboard updates
-- Session analytics and result export
-
-
-
-Problem Statement Context
-
-The system is a real-time quiz platform where creators build quizzes and host live sessions. Participants join sessions using an 8-digit join code and answer questions in real time. The host controls question progression and session flow. The platform computes scores, displays live leaderboard updates, stores analytics, and supports result export.
-
-
-
-Identified Actors
-
-Primary Actors
+Primary actors:
 1. Creator (Host)
 2. Participant
 
-Supporting/External Actors
+Supporting actors:
 3. Admin
 4. AI Service (LLM API)
 5. OCR/Vision Service
-6. Email/Auth Infrastructure (optional external auth/notification support)
+6. Auth/Email Service (optional)
 
+Generalized actor:
+7. User (parent actor of Creator and Participant)
 
+STEP 3: IDENTIFY ALL USE CASES (OVALS/CIRCLES)
 
-Identified Use Cases
+Authentication:
+1. Register Account
+2. Login
+3. Logout
+4. View Profile
 
-Common Authentication Use Cases
-- Register Account
-- Login
-- Logout
-- View Profile
+Creator operations:
+5. Create Quiz
+6. Edit Quiz
+7. Delete Quiz
+8. Add Question
+9. Configure Timer/Points/Difficulty
+10. Enable Adaptive Difficulty
+11. Generate Quiz from AI Prompt
+12. Generate Quiz from Image Scan
+13. Launch Session
+14. View Waiting Room
+15. Start Session
+16. Advance Question
+17. Pause Session
+18. Resume Session
+19. End Session
+20. View Live Response Count
+21. View Leaderboard
+22. View Session Analytics
+23. Export Results (CSV)
 
-Creator Use Cases
-- Create Quiz
-- Edit Quiz
-- Delete Quiz
-- Add Question
-- Configure Timer/Points/Difficulty
-- Enable Adaptive Difficulty
-- Generate Quiz from AI Prompt
-- Generate Quiz from Image Scan
-- Launch Session
-- View Waiting Room
-- Start Session
-- Advance Question
-- Pause Session
-- Resume Session
-- End Session
-- View Live Response Count
-- View Leaderboard
-- View Session Analytics
-- Export Results (CSV)
+Participant operations:
+24. Join Session via Join Code
+25. Rejoin Session
+26. View Current Question
+27. Submit Response
+28. View Correct Answer
+29. View Live Score/Rank
+30. View Final Leaderboard
 
-Participant Use Cases
-- Join Session via Join Code
-- Rejoin Session
-- View Current Question
-- Submit Response
-- View Correct Answer
-- View Live Score/Rank
-- View Final Leaderboard
+Admin operations:
+31. Manage Users
+32. Manage Quizzes/Sessions
+33. Monitor System Health
 
-Admin Use Cases
-- Manage Users
-- Manage Quizzes/Sessions
-- Monitor System Health
+STEP 4: DRAW ACTOR TO USE CASE ASSOCIATIONS (SOLID LINES)
 
-
-
-Actor-Use Case Associations
-
-Creator is associated with:
+Creator connects to:
 - Register Account, Login, Logout, View Profile
-- Create/Edit/Delete Quiz
-- Add Question, Configure Timer/Points/Difficulty, Enable Adaptive Difficulty
+- Create/Edit/Delete Quiz, Add Question
+- Configure Timer/Points/Difficulty, Enable Adaptive Difficulty
 - Generate Quiz from AI Prompt, Generate Quiz from Image Scan
-- Launch/View Waiting Room/Start Session
-- Advance Question, Pause Session, Resume Session, End Session
-- View Live Response Count, View Leaderboard, View Session Analytics, Export Results
+- Launch Session, View Waiting Room, Start Session, Advance Question
+- Pause Session, Resume Session, End Session
+- View Live Response Count, View Leaderboard
+- View Session Analytics, Export Results (CSV)
 
-Participant is associated with:
+Participant connects to:
 - Register Account, Login, Logout, View Profile
 - Join Session via Join Code, Rejoin Session
 - View Current Question, Submit Response, View Correct Answer
 - View Live Score/Rank, View Final Leaderboard
 
-Admin is associated with:
+Admin connects to:
 - Manage Users, Manage Quizzes/Sessions, Monitor System Health
 
-AI Service is associated with:
+AI Service connects to:
 - Generate Quiz from AI Prompt
 
-OCR Service is associated with:
+OCR Service connects to:
 - Generate Quiz from Image Scan
 
+Auth/Email Service optionally connects to:
+- Register Account, Login, password recovery/OTP flow
 
+STEP 5: ADD RELATIONSHIP ARROWS
 
-Use Case Relationships
+A) Include (mandatory shared behavior)
+Notation: dashed arrow with <<include>> from base to included use case.
 
-Include Relationships (mandatory shared behavior)
-- Create Quiz <<include>> Login
-- Edit Quiz <<include>> Login
-- Delete Quiz <<include>> Login
-- Launch Session <<include>> Login
-- Submit Response <<include>> Join Session via Join Code
-- Export Results (CSV) <<include>> View Session Analytics
+1. Create Quiz -> Login
+2. Edit Quiz -> Login
+3. Delete Quiz -> Login
+4. Launch Session -> Login
+5. Start Session -> Launch Session
+6. Submit Response -> Join Session via Join Code
+7. Export Results (CSV) -> View Session Analytics
+8. View Session Analytics -> End Session
 
-Extend Relationships (optional/conditional behavior)
-- Rejoin Session <<extend>> Join Session via Join Code
-- Pause Session <<extend>> Start Session
-- Resume Session <<extend>> Pause Session
-- View Correct Answer <<extend>> Submit Response
-- Enable Adaptive Difficulty <<extend>> Configure Timer/Points/Difficulty
+B) Extend (optional behavior)
+Notation: dashed arrow with <<extend>> from extension to base use case.
 
-Generalization Relationships
-- Creator and Participant are specialized roles of User actor.
-- Manage Quizzes/Sessions (Admin) is a specialized management use case over standard quiz/session operations.
+1. Rejoin Session -> Join Session via Join Code
+2. Pause Session -> Start Session
+3. Resume Session -> Pause Session
+4. View Correct Answer -> Submit Response
+5. Enable Adaptive Difficulty -> Configure Timer/Points/Difficulty
+6. Generate Quiz from AI Prompt -> Create Quiz
+7. Generate Quiz from Image Scan -> Create Quiz
 
+C) Generalization
+Notation: solid line with hollow triangle to parent actor.
 
+1. Creator -> User
+2. Participant -> User
 
-Textual Use Case Diagram Summary
+STEP 6: EXACT DIAGRAM DRAWING ORDER
 
-Actors:
-- User (generalized actor)
-	- Creator (specialized)
-	- Participant (specialized)
-- Admin
-- AI Service
-- OCR Service
+1. Draw one large rectangle (system boundary).
+2. Write title: Interactive Quiz Platform.
+3. Place actors outside rectangle.
+4. Draw all use case ovals inside rectangle.
+5. Connect actors to relevant use cases using solid lines.
+6. Draw include arrows with <<include>> labels.
+7. Draw extend arrows with <<extend>> labels.
+8. Draw generalization arrows from Creator/Participant to User.
+9. Check arrow directions.
+10. Check readability and spacing.
 
-Core flow:
-- Creator logs in -> creates/edits quiz -> launches session -> controls live flow -> reviews analytics -> exports CSV.
-- Participant logs in -> joins via code -> submits answers -> views live and final leaderboard.
-- AI and OCR services support quiz generation use cases.
+STEP 7: QUALITY CHECKLIST
 
+- Every use case name starts with a verb.
+- No actor is placed inside rectangle.
+- AI/OCR/Auth are actors, not use cases.
+- Include and extend directions are correct.
+- Diagram is legible and not cluttered.
 
+DETAILED PLANTUML CODE
 
-How to Generate Use Case Diagram Image
-
-Option A: PlantUML (recommended for UML use case diagrams)
-
-Step 1: Save the following content as usecase-diagram.puml
+Save as usecase-diagram.puml
 
 @startuml
 left to right direction
 skinparam packageStyle rectangle
 skinparam shadowing false
 skinparam linetype ortho
-skinparam dpi 160
-scale max 1800 width
+skinparam dpi 180
+scale max 2200 width
 
 actor User
 actor Creator
 actor Participant
 actor Admin
 actor "AI Service" as AI
-actor "OCR Service" as OCR
+actor "OCR/Vision Service" as OCR
+actor "Auth/Email Service" as AUTH
 
 User <|-- Creator
 User <|-- Participant
 
-rectangle "Quiz System" {
-	usecase "Authenticate User" as UC_Auth
-	usecase "Manage Quiz" as UC_Quiz
-	usecase "Generate Quiz (AI Prompt)" as UC_AI
-	usecase "Generate Quiz (Image Scan)" as UC_OCR
-	usecase "Host Live Session" as UC_Host
-	usecase "Join Session (Code)" as UC_Join
-	usecase "Submit Response" as UC_Submit
-	usecase "View Leaderboard" as UC_Board
-	usecase "View Session Analytics" as UC_Analytics
-	usecase "Export Results (CSV)" as UC_Export
-	usecase "Manage Users/Sessions" as UC_Admin
+rectangle "Interactive Quiz Platform" {
+  usecase "Register Account" as UC_Register
+  usecase "Login" as UC_Login
+  usecase "Logout" as UC_Logout
+  usecase "View Profile" as UC_Profile
+
+  usecase "Create Quiz" as UC_CreateQuiz
+  usecase "Edit Quiz" as UC_EditQuiz
+  usecase "Delete Quiz" as UC_DeleteQuiz
+  usecase "Add Question" as UC_AddQuestion
+  usecase "Configure Timer/Points/Difficulty" as UC_Config
+  usecase "Enable Adaptive Difficulty" as UC_Adaptive
+  usecase "Generate Quiz from AI Prompt" as UC_GenAI
+  usecase "Generate Quiz from Image Scan" as UC_GenOCR
+
+  usecase "Launch Session" as UC_Launch
+  usecase "View Waiting Room" as UC_Waiting
+  usecase "Start Session" as UC_Start
+  usecase "Advance Question" as UC_Advance
+  usecase "Pause Session" as UC_Pause
+  usecase "Resume Session" as UC_Resume
+  usecase "End Session" as UC_End
+  usecase "View Live Response Count" as UC_ResponseCount
+  usecase "View Leaderboard" as UC_Leaderboard
+
+  usecase "Join Session via Join Code" as UC_Join
+  usecase "Rejoin Session" as UC_Rejoin
+  usecase "View Current Question" as UC_ViewQ
+  usecase "Submit Response" as UC_Submit
+  usecase "View Correct Answer" as UC_Correct
+  usecase "View Live Score/Rank" as UC_LiveScore
+  usecase "View Final Leaderboard" as UC_FinalBoard
+
+  usecase "View Session Analytics" as UC_Analytics
+  usecase "Export Results (CSV)" as UC_Export
+
+  usecase "Manage Users" as UC_ManageUsers
+  usecase "Manage Quizzes/Sessions" as UC_ManageQS
+  usecase "Monitor System Health" as UC_Monitor
 }
 
-Creator -- UC_Quiz
-Creator -- UC_Host
-Creator -- UC_Board
+Creator -- UC_Register
+Creator -- UC_Login
+Creator -- UC_Logout
+Creator -- UC_Profile
+Creator -- UC_CreateQuiz
+Creator -- UC_EditQuiz
+Creator -- UC_DeleteQuiz
+Creator -- UC_AddQuestion
+Creator -- UC_Config
+Creator -- UC_Adaptive
+Creator -- UC_GenAI
+Creator -- UC_GenOCR
+Creator -- UC_Launch
+Creator -- UC_Waiting
+Creator -- UC_Start
+Creator -- UC_Advance
+Creator -- UC_Pause
+Creator -- UC_Resume
+Creator -- UC_End
+Creator -- UC_ResponseCount
+Creator -- UC_Leaderboard
 Creator -- UC_Analytics
 Creator -- UC_Export
 
+Participant -- UC_Register
+Participant -- UC_Login
+Participant -- UC_Logout
+Participant -- UC_Profile
 Participant -- UC_Join
+Participant -- UC_Rejoin
+Participant -- UC_ViewQ
 Participant -- UC_Submit
-Participant -- UC_Board
+Participant -- UC_Correct
+Participant -- UC_LiveScore
+Participant -- UC_FinalBoard
 
-Admin -- UC_Admin
-AI -- UC_AI
-OCR -- UC_OCR
+Admin -- UC_ManageUsers
+Admin -- UC_ManageQS
+Admin -- UC_Monitor
 
-UC_Quiz .> UC_Auth : <<include>>
-UC_Host .> UC_Auth : <<include>>
-UC_Join .> UC_Auth : <<include>>
+AI -- UC_GenAI
+OCR -- UC_GenOCR
+AUTH -- UC_Register
+AUTH -- UC_Login
+
+UC_CreateQuiz .> UC_Login : <<include>>
+UC_EditQuiz .> UC_Login : <<include>>
+UC_DeleteQuiz .> UC_Login : <<include>>
+UC_Launch .> UC_Login : <<include>>
+UC_Start .> UC_Launch : <<include>>
 UC_Submit .> UC_Join : <<include>>
 UC_Export .> UC_Analytics : <<include>>
-UC_AI .> UC_Quiz : <<extend>>d
-UC_OCR .> UC_Quiz : <<extend>>
+UC_Analytics .> UC_End : <<include>>
+
+UC_Rejoin .> UC_Join : <<extend>>
+UC_Pause .> UC_Start : <<extend>>
+UC_Resume .> UC_Pause : <<extend>>
+UC_Correct .> UC_Submit : <<extend>>
+UC_Adaptive .> UC_Config : <<extend>>
+UC_GenAI .> UC_CreateQuiz : <<extend>>
+UC_GenOCR .> UC_CreateQuiz : <<extend>>
 
 @enduml
 
-Step 2: Generate image using one of these methods
+HOW TO GENERATE IMAGE
 
-Method 1 (VS Code extension)
-- Install PlantUML extension.
-- Open usecase-diagram.puml.
-- Run command: PlantUML: Export Current Diagram.
+Method 1 (VS Code)
+1. Install PlantUML extension.
+2. Open usecase-diagram.puml.
+3. Run: PlantUML: Export Current Diagram.
 
-Method 2 (PlantUML server)
-- Website: https://www.plantuml.com/plantuml
-- Paste the code and export PNG/SVG.
+Method 2 (Web)
+1. Open https://www.plantuml.com/plantuml
+2. Paste code and export PNG/SVG.
 
 Method 3 (CLI)
-- Install Java and Graphviz.
-- Install PlantUML jar.
-- Command:
-	java -jar plantuml.jar usecase-diagram.puml -tsvg
+1. Install Java + Graphviz.
+2. Download plantuml.jar.
+3. Run: java -jar plantuml.jar usecase-diagram.puml -tsvg
 
-Printable A4 Tip
-- First export SVG using the command above.
-- Then convert SVG to A4 PDF (portrait or landscape) and print with "Fit to page".
+CONCLUSION
 
-
-
-Option B: Mermaid (quick web rendering)
-
-Use this Mermaid code in mermaid.live or draw.io:
-
-flowchart LR
-	Creator([Creator])
-	Participant([Participant])
-	Admin([Admin])
-	AI([AI Service])
-	OCR([OCR Service])
-
-	subgraph QuizSystem[Quiz System]
-		Login((Login))
-		CreateQuiz((Create Quiz))
-		GenAI((Generate Quiz from AI Prompt))
-		GenOCR((Generate Quiz from Image Scan))
-		Launch((Launch Session))
-		Join((Join Session via Join Code))
-		Submit((Submit Response))
-		Leaderboard((View Leaderboard))
-		Analytics((View Session Analytics))
-		Export((Export Results CSV))
-	end
-
-	Creator --> Login
-	Creator --> CreateQuiz
-	Creator --> GenAI
-	Creator --> GenOCR
-	Creator --> Launch
-	Creator --> Leaderboard
-	Creator --> Analytics
-	Creator --> Export
-
-	Participant --> Login
-	Participant --> Join
-	Participant --> Submit
-	Participant --> Leaderboard
-
-	Admin --> Login
-	Admin --> Analytics
-
-	AI --> GenAI
-	OCR --> GenOCR
-
-	CreateQuiz -. include .-> Login
-	Launch -. include .-> Login
-	Submit -. include .-> Join
-	Export -. include .-> Analytics
-
-Websites:
-- https://mermaid.live
-- https://www.draw.io (Insert -> Advanced -> Mermaid)
-
-
-
-Option C: UML drawing websites/tools
-
-For manual professional diagram drawing:
-- https://www.draw.io
-- https://www.lucidchart.com
-- https://creately.com
-- https://www.visual-paradigm.com
-
-Recommended export format for reports:
-- SVG (best quality) or PNG (high resolution)
-
-
-
-Conclusion
-
-By analyzing the problem statement, we identified actors, use cases, and their relationships using include, extend, and generalization. The resulting use-case model clearly defines system behavior from user and external-service perspectives, and it is ready to be rendered into a formal UML use-case diagram for documentation.
-
-
-
+This document now gives a complete step-by-step UML process with every actor, every use case, every arrow type, and a corrected detailed diagram definition.
