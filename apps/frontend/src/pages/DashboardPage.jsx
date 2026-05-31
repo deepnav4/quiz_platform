@@ -12,142 +12,99 @@ export default function DashboardPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/login');
-    }
+    if (!authLoading && !user) navigate('/login');
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    if (user) {
-      fetchQuizzes();
-    }
+    if (!user) return;
+    setLoading(true);
+    getQuizzes()
+      .then(data => setQuizzes(data.quizzes || data || []))
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
   }, [user]);
 
-  async function fetchQuizzes() {
-    setLoading(true);
+  const handleDelete = async (id) => {
+    if (!confirm('Delete this quiz? This cannot be undone.')) return;
     try {
-      const data = await getQuizzes();
-      setQuizzes(data.quizzes || data || []);
-    } catch (err) {
-      setError(err.message || 'Failed to load quizzes.');
-    } finally {
-      setLoading(false);
-    }
-  }
+      await deleteQuiz(id);
+      setQuizzes(prev => prev.filter(q => q.id !== id));
+    } catch (err) { setError(err.message); }
+  };
 
-  async function handleDelete(quizId) {
-    if (!window.confirm('Are you sure you want to delete this quiz?')) return;
-    try {
-      await deleteQuiz(quizId);
-      setQuizzes((prev) => prev.filter((q) => q._id !== quizId));
-    } catch (err) {
-      setError(err.message || 'Failed to delete quiz.');
-    }
-  }
-
-  async function handleStartSession(quizId) {
+  const handleStartSession = async (quizId) => {
     try {
       const data = await createSession({ quizId });
-      const sessionId = data.session?._id || data._id;
-      navigate(`/session/${sessionId}/host`);
-    } catch (err) {
-      setError(err.message || 'Failed to start session.');
-    }
-  }
+      navigate(`/session/${data.session?.id || data.id}/waiting`);
+    } catch (err) { setError(err.message); }
+  };
 
-  if (authLoading || loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-10 h-10 border-4 border-menti-brand-weakest border-t-menti-brand rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (authLoading) return (
+    <div className="min-h-[80vh] flex items-center justify-center">
+      <div className="w-8 h-8 border-3 border-menti-border border-t-menti-brand rounded-full animate-spin" />
+    </div>
+  );
 
   return (
-    <div className="max-w-[1200px] mx-auto px-6 py-8">
+    <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8 sm:py-12 bg-menti-bg min-h-[80vh]">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="font-heading font-semibold text-3xl text-menti-text">
-          My Quizzes
-        </h1>
-        <Link
-          to="/quiz/create"
-          className="bg-menti-brand text-white px-6 py-3 rounded-full font-body font-semibold hover:bg-menti-brand-hover transition-colors"
-        >
-          + Create Quiz
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="font-heading font-semibold text-2xl sm:text-3xl text-menti-text">My Quizzes</h1>
+          <p className="font-body text-sm text-menti-text-weak mt-1">Manage and launch your interactive quizzes</p>
+        </div>
+        <Link to="/quiz/create" className="inline-flex items-center gap-2 bg-menti-brand text-white px-6 py-3 rounded-full font-body font-semibold text-sm hover:bg-menti-brand-hover transition-colors duration-200 self-start">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Create Quiz
         </Link>
       </div>
 
       {error && (
-        <p className="text-menti-coral text-sm mb-4 font-body">{error}</p>
+        <div className="mb-6 p-3 rounded-xl bg-red-50 border border-menti-coral/20">
+          <p className="font-body text-sm text-menti-coral">{error}</p>
+        </div>
+      )}
+
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center py-20">
+          <div className="w-8 h-8 border-3 border-menti-border border-t-menti-brand rounded-full animate-spin" />
+        </div>
       )}
 
       {/* Empty State */}
-      {quizzes.length === 0 ? (
+      {!loading && quizzes.length === 0 && (
         <div className="text-center py-20">
-          <span className="text-6xl mb-4 block">📝</span>
-          <h2 className="font-heading font-semibold text-2xl text-menti-text mb-2">
-            No quizzes yet
-          </h2>
-          <p className="font-body text-menti-text-weak mb-6 max-w-sm mx-auto">
-            Create your first quiz and start engaging your audience with interactive questions.
-          </p>
-          <Link
-            to="/quiz/create"
-            className="inline-block bg-menti-brand text-white px-6 py-3 rounded-full font-body font-semibold hover:bg-menti-brand-hover transition-colors"
-          >
+          <div className="text-5xl mb-4">📝</div>
+          <h2 className="font-heading font-semibold text-xl text-menti-text mb-2">No quizzes yet</h2>
+          <p className="font-body text-sm text-menti-text-weak mb-6">Create your first quiz and start engaging your audience!</p>
+          <Link to="/quiz/create" className="inline-block bg-menti-brand text-white px-8 py-3 rounded-full font-body font-semibold text-sm hover:bg-menti-brand-hover transition-colors duration-200">
             Create your first quiz
           </Link>
         </div>
-      ) : (
-        /* Quiz Grid */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {quizzes.map((quiz) => (
-            <div
-              key={quiz._id}
-              className="bg-menti-surface rounded-2xl p-6 border border-menti-border-weak hover:shadow-lg transition-shadow"
-            >
-              <h3 className="font-heading font-semibold text-lg mb-1 text-menti-text">
-                {quiz.title}
-              </h3>
-              <p className="font-body text-sm text-menti-text-weak mb-4 line-clamp-2">
-                {quiz.description || 'No description'}
-              </p>
+      )}
 
-              {/* Stats */}
-              <div className="flex gap-4 flex-wrap">
-                <span className="bg-menti-brand-weakest text-menti-brand rounded-full px-3 py-1 text-xs font-semibold">
+      {/* Quiz Grid */}
+      {!loading && quizzes.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {quizzes.map(quiz => (
+            <article key={quiz.id} className="bg-menti-surface rounded-2xl p-6 border border-menti-border-weak hover:shadow-lg transition-shadow duration-300 flex flex-col">
+              <h3 className="font-heading font-semibold text-lg text-menti-text mb-1 line-clamp-1">{quiz.title}</h3>
+              <p className="font-body text-sm text-menti-text-weak mb-4 line-clamp-2 flex-1">{quiz.description || 'No description'}</p>
+              <div className="flex gap-2 flex-wrap mb-4">
+                <span className="bg-menti-brand-weakest text-menti-brand rounded-full px-3 py-1 text-xs font-body font-semibold">
                   {quiz.questions?.length || 0} questions
                 </span>
-                {quiz.createdAt && (
-                  <span className="bg-menti-brand-weakest text-menti-brand rounded-full px-3 py-1 text-xs font-semibold">
-                    {new Date(quiz.createdAt).toLocaleDateString()}
-                  </span>
+                {quiz.isAIGenerated && (
+                  <span className="bg-violet-50 text-violet-600 rounded-full px-3 py-1 text-xs font-body font-semibold">AI Generated</span>
                 )}
               </div>
-
-              {/* Actions */}
-              <div className="flex gap-2 mt-4 flex-wrap">
-                <Link
-                  to={`/quiz/${quiz._id}/edit`}
-                  className="border border-menti-border rounded-full px-4 py-2 text-sm font-body text-menti-text-primary hover:bg-menti-surface-sunken transition-colors"
-                >
-                  Edit
-                </Link>
-                <button
-                  onClick={() => handleStartSession(quiz._id)}
-                  className="bg-menti-brand text-white rounded-full px-4 py-2 text-sm font-body font-semibold hover:bg-menti-brand-hover transition-colors cursor-pointer"
-                >
-                  Start Session
-                </button>
-                <button
-                  onClick={() => handleDelete(quiz._id)}
-                  className="text-menti-coral text-sm font-body px-4 py-2 hover:underline cursor-pointer"
-                >
-                  Delete
-                </button>
+              <div className="flex gap-2 pt-3 border-t border-menti-border-weak">
+                <Link to={`/quiz/${quiz.id}/edit`} className="border border-menti-border rounded-full px-4 py-2 font-body text-sm text-menti-text-primary hover:bg-menti-surface-sunken transition-colors duration-200">Edit</Link>
+                <button onClick={() => handleStartSession(quiz.id)} className="bg-menti-brand text-white rounded-full px-4 py-2 font-body text-sm font-semibold hover:bg-menti-brand-hover transition-colors duration-200 cursor-pointer">Start</button>
+                <button onClick={() => handleDelete(quiz.id)} className="ml-auto font-body text-sm text-menti-coral hover:text-red-600 transition-colors duration-200 cursor-pointer">Delete</button>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       )}

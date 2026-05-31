@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { SocketProvider } from "./context/SocketContext.jsx";
 import Navbar from "./components/Navbar.jsx";
-import './App.css';
 
 import HomePage from "./pages/HomePage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
@@ -17,27 +16,11 @@ import HostControlPage from "./pages/HostControlPage.jsx";
 import ResultsPage from "./pages/ResultsPage.jsx";
 import LeaderboardPage from "./pages/LeaderboardPage.jsx";
 
-/* 
-  Routes that use the app-level Navbar (not the homepage).
-  The HomePage has its own integrated Navbar + Footer.
-*/
-const APP_ROUTES = [
-  "/login", "/signup", "/quiz/create", "/join",
-  "/quiz/:quizId/edit",
-  "/session/:sessionId/waiting",
-  "/session/:sessionId/live",
-  "/session/:sessionId/host",
-  "/session/:sessionId/results",
-  "/session/:sessionId/leaderboard",
-];
-
 function AppLayout({ children }) {
   return (
     <>
       <Navbar />
-      <div className="app-content">
-        {children}
-      </div>
+      <div>{children}</div>
     </>
   );
 }
@@ -51,22 +34,26 @@ function App() {
             {/* Homepage — has its own Navbar + Footer */}
             <Route path="/" element={<HomePage />} />
 
-            {/* Auth pages with app Navbar */}
+            {/* Auth pages */}
             <Route path="/login" element={<AppLayout><LoginPage /></AppLayout>} />
             <Route path="/signup" element={<AppLayout><SignupPage /></AppLayout>} />
 
-            {/* Dashboard (authenticated) */}
+            {/* Dashboard */}
             <Route path="/dashboard" element={<AppLayout><DashboardPage /></AppLayout>} />
 
             {/* Quiz management */}
             <Route path="/quiz/create" element={<AppLayout><CreateQuizPage /></AppLayout>} />
             <Route path="/quiz/:quizId/edit" element={<AppLayout><EditQuizPage /></AppLayout>} />
 
-            {/* Session flow */}
+            {/* Join */}
             <Route path="/join" element={<AppLayout><JoinPage /></AppLayout>} />
-            <Route path="/session/:sessionId/waiting" element={<AppLayout><WaitingRoomPage /></AppLayout>} />
-            <Route path="/session/:sessionId/live" element={<AppLayout><LiveQuizPage /></AppLayout>} />
-            <Route path="/session/:sessionId/host" element={<AppLayout><HostControlPage /></AppLayout>} />
+
+            {/* Full-screen session pages (no app navbar) */}
+            <Route path="/session/:sessionId/waiting" element={<WaitingRoomPage />} />
+            <Route path="/session/:sessionId/live" element={<LiveQuizPage />} />
+            <Route path="/session/:sessionId/host" element={<HostControlPage />} />
+
+            {/* Results (with navbar) */}
             <Route path="/session/:sessionId/results" element={<AppLayout><ResultsPage /></AppLayout>} />
             <Route path="/session/:sessionId/leaderboard" element={<AppLayout><LeaderboardPage /></AppLayout>} />
           </Routes>

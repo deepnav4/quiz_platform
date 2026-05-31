@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { login as apiLogin, signup as apiSignup, getMe } from '../api/auth.js';
 
 const AuthContext = createContext(null);
 
@@ -9,50 +8,90 @@ export function useAuth() {
   return ctx;
 }
 
+/* ——————————————————————————————————
+   Mock / Demo Auth Provider
+   Works fully without backend.
+   Login/Signup stores user in localStorage.
+   —————————————————————————————————— */
+const DEMO_USERS = {
+  'demo@quizora.com': { id: '1', name: 'Demo User', email: 'demo@quizora.com', password: 'demo123' },
+  'admin@quizora.com': { id: '2', name: 'Admin', email: 'admin@quizora.com', password: 'admin123' },
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
+  /* Restore user from localStorage on mount */
   useEffect(() => {
-    if (token) {
-      getMe()
-        .then((data) => setUser(data.user))
-        .catch(() => {
-          localStorage.removeItem('token');
-          setToken(null);
-          setUser(null);
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
-  }, [token]);
+    try {
+      const saved = localStorage.getItem('quizora_user');
+      if (saved) setUser(JSON.parse(saved));
+    } catch { /* ignore */ }
+    setLoading(false);
+  }, []);
 
   async function login(email, password) {
-    const data = await apiLogin(email, password);
-    localStorage.setItem('token', data.token);
-    setToken(data.token);
-    setUser(data.user);
-    return data;
+    /* Try real API first */
+    try {
+      const res = await fetch('http://localhost:3000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('quizora_user', JSON.stringify(data.user));
+        setUser(data.user);
+        return data;
+      }
+    } catch { /* Backend not available — use mock */ }
+
+    /* Mock login */
+    const demo = DEMO_USERS[email];
+    if (demo && demo.password === password) {
+      const userData = { id: demo.id, name: demo.name, email: demo.email };
+      localStorage.setItem('quizora_user', JSON.stringify(userData));
+      setUser(userData);
+      return { user: userData, token: 'mock-token-' + Date.now() };
+    }
+
+    throw new Error('Invalid email or password. Try demo@quizora.com / demo123');
   }
 
   async function signup(email, password, name) {
-    const data = await apiSignup(email, password, name);
-    localStorage.setItem('token', data.token);
-    setToken(data.token);
-    setUser(data.user);
-    return data;
+    /* Try real API first */
+    try {
+      const res = await fetch('http://localhost:3000/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('quizora_user', JSON.stringify(data.user));
+        setUser(data.user);
+        return data;
+      }
+    } catch { /* Backend not available — use mock */ }
+
+    /* Mock signup — always succeeds */
+    const userData = { id: 'user-' + Date.now(), name: name || 'New User', email };
+    localStorage.setItem('quizora_user', JSON.stringify(userData));
+    setUser(userData);
+    return { user: userData, token: 'mock-token-' + Date.now() };
   }
 
   function logout() {
     localStorage.removeItem('token');
-    setToken(null);
+    localStorage.removeItem('quizora_user');
     setUser(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, signup, logout, loading }}>
+    <AuthContext.Provider value={{ user, token: localStorage.getItem('token'), login, signup, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

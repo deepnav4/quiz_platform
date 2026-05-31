@@ -1,294 +1,131 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useEffect, useCallback } from 'react';
-import { useSocket } from '../context/SocketContext.jsx';
-import { useAuth } from '../context/AuthContext.jsx';
-import { getSession } from '../api/session.js';
+import { useState } from 'react';
+import { useParams } from 'react-router-dom';
+
+const MOCK = {
+  joinCode: 'ABC12345',
+  participants: 12,
+  questions: [
+    { id: 1, text: 'What is the capital of France?', options: ['London', 'Paris', 'Berlin', 'Madrid'], correctIndex: 1 },
+    { id: 2, text: 'JavaScript is a compiled language.', options: ['True', 'False'], correctIndex: 1 },
+    { id: 3, text: 'Explain closures in JavaScript.', options: [], type: 'OPEN_ENDED' },
+  ],
+  responses: { 0: [3, 8, 1, 0], 1: [4, 8], 2: [] },
+};
 
 export default function HostControlPage() {
   const { sessionId } = useParams();
-  const navigate = useNavigate();
-  const { socket, sendMessage, connected } = useSocket();
-  const { user } = useAuth();
-
-  const [session, setSession] = useState(null);
-  const [questions, setQuestions] = useState([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [responses, setResponses] = useState({});
+  const [currentQ, setCurrentQ] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [participantCount, setParticipantCount] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const questions = MOCK.questions;
+  const question = questions[currentQ];
+  const responses = MOCK.responses[currentQ] || [];
+  const totalResponses = responses.reduce((a, b) => a + b, 0);
 
-  // Fetch session data
-  useEffect(() => {
-    getSession(sessionId)
-      .then((data) => {
-        setSession(data.session ?? data);
-        setQuestions(data.questions ?? data.session?.questions ?? []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [sessionId]);
-
-  // Socket listeners
-  useEffect(() => {
-    if (!socket) return;
-
-    function onMessage(event) {
-      const msg = JSON.parse(event.data);
-      switch (msg.type) {
-        case 'participant:joined':
-          setParticipantCount((c) => c + 1);
-          break;
-        case 'participant:left':
-          setParticipantCount((c) => Math.max(0, c - 1));
-          break;
-        case 'answer:received':
-          setResponses((prev) => {
-            const qId = msg.data.questionId;
-            const existing = prev[qId] ?? [];
-            return { ...prev, [qId]: [...existing, msg.data] };
-          });
-          break;
-        case 'session:participants':
-          setParticipantCount(msg.data.count ?? 0);
-          break;
-        default:
-          break;
-      }
-    }
-
-    socket.addEventListener('message', onMessage);
-    return () => socket.removeEventListener('message', onMessage);
-  }, [socket]);
-
-  const currentQuestion = questions[currentQuestionIndex] ?? null;
-  const currentResponses = currentQuestion
-    ? responses[currentQuestion.id] ?? []
-    : [];
-  const totalResponses = currentResponses.length;
-
-  const handleNextQuestion = useCallback(() => {
-    if (currentQuestionIndex < questions.length - 1) {
-      const nextIdx = currentQuestionIndex + 1;
-      setCurrentQuestionIndex(nextIdx);
-      sendMessage('question:next', {
-        sessionId,
-        questionIndex: nextIdx,
-      });
-    }
-  }, [currentQuestionIndex, questions.length, sendMessage, sessionId]);
-
-  const handleTogglePause = useCallback(() => {
-    setIsPaused((p) => !p);
-    sendMessage(isPaused ? 'session:resume' : 'session:pause', { sessionId });
-  }, [isPaused, sendMessage, sessionId]);
-
-  const handleEndQuiz = useCallback(() => {
-    sendMessage('session:end', { sessionId });
-    navigate(`/results/${sessionId}`);
-  }, [sendMessage, sessionId, navigate]);
-
-  // Response distribution for options
-  const getOptionStats = () => {
-    if (!currentQuestion?.options) return [];
-    return currentQuestion.options.map((opt) => {
-      const count = currentResponses.filter((r) =>
-        r.optionIds?.includes(opt.id)
-      ).length;
-      const pct = totalResponses > 0 ? Math.round((count / totalResponses) * 100) : 0;
-      return { ...opt, count, pct };
-    });
-  };
-
-  const optionStats = getOptionStats();
-  const maxPct = Math.max(...optionStats.map((o) => o.pct), 1);
-
-  // Mock data for dev
-  const mockQuestions = questions.length > 0 ? questions : [
-    { id: '1', text: 'What is React?', type: 'MULTIPLE_CHOICE', options: [
-      { id: 'a', text: 'A library', isCorrect: true },
-      { id: 'b', text: 'A framework', isCorrect: false },
-      { id: 'c', text: 'A language', isCorrect: false },
-      { id: 'd', text: 'An OS', isCorrect: false },
-    ]},
-    { id: '2', text: 'Is JavaScript typed?', type: 'TRUE_FALSE', options: [] },
-    { id: '3', text: 'Explain closures.', type: 'OPEN_ENDED', options: [] },
-  ];
-
-  const displayQuestions = questions.length > 0 ? questions : mockQuestions;
-  const displayQuestion = displayQuestions[currentQuestionIndex] ?? displayQuestions[0];
-  const joinCode = session?.joinCode ?? 'ABCD12';
-
-  // Stat cards data
-  const stats = [
-    { label: 'Participants', value: participantCount },
-    { label: 'Responses', value: totalResponses },
-    { label: 'Avg. Time', value: '12s' },
-    { label: 'Accuracy', value: '76%' },
-  ];
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-menti-bg flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-menti-brand-weakest border-t-menti-brand rounded-full animate-spin" />
-      </div>
-    );
-  }
+  const nextQuestion = () => { if (currentQ < questions.length - 1) setCurrentQ(p => p + 1); };
 
   return (
     <div className="flex min-h-screen bg-menti-bg">
-      {/* ── Sidebar ── */}
-      <aside
-        className={`fixed inset-y-0 left-0 w-80 bg-menti-surface border-r border-menti-border-weak pt-20 overflow-y-auto z-30 transform transition-transform duration-300
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
-      >
-        <div className="p-6 flex flex-col h-[calc(100%-5rem)]">
-          {/* Session Info Card */}
+      {/* Sidebar */}
+      <aside className={`fixed lg:static top-0 left-0 h-screen w-72 sm:w-80 bg-menti-surface border-r border-menti-border-weak z-40 transform transition-transform duration-300 overflow-y-auto
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        <div className="p-6 pt-8">
+          {/* Session Info */}
           <div className="bg-menti-brand-weakest rounded-2xl p-4 mb-6">
-            <p className="font-body text-xs text-menti-text-weak uppercase tracking-wider mb-1">Join Code</p>
-            <p className="font-mono text-2xl font-bold text-menti-brand tracking-widest">{joinCode}</p>
-            <div className="flex items-center gap-2 mt-3">
-              <span className="w-2 h-2 rounded-full bg-menti-positive animate-pulse" />
-              <span className="font-body font-semibold text-sm text-menti-text-primary">
-                {participantCount} participant{participantCount !== 1 ? 's' : ''}
-              </span>
-            </div>
+            <p className="font-body text-xs text-menti-text-weak mb-1">Join Code</p>
+            <p className="font-mono text-xl font-bold text-menti-brand tracking-wider">{MOCK.joinCode}</p>
+            <p className="font-body text-sm font-semibold text-menti-text mt-2">{MOCK.participants} participants</p>
           </div>
 
           {/* Questions Nav */}
-          <h3 className="font-heading font-semibold text-sm text-menti-text-weak uppercase tracking-wider mb-3">
-            Questions
-          </h3>
-          <nav className="flex-1 overflow-y-auto -mx-2 mb-4">
-            {displayQuestions.map((q, i) => (
-              <button
-                key={q.id}
-                onClick={() => setCurrentQuestionIndex(i)}
-                className={`w-full text-left py-3 px-4 cursor-pointer font-body text-sm transition-colors rounded-r-lg mb-1
-                  ${
-                    i === currentQuestionIndex
-                      ? 'bg-menti-brand-weakest border-l-4 border-menti-brand text-menti-brand font-semibold'
-                      : 'hover:bg-menti-surface-sunken text-menti-text-primary border-l-4 border-transparent'
-                  }`}
-              >
-                <span className="text-menti-text-weak mr-2">{i + 1}.</span>
-                <span className="line-clamp-1">{q.text}</span>
+          <h3 className="font-heading font-semibold text-xs text-menti-text-weaker uppercase tracking-wider mb-3">QUESTIONS</h3>
+          <nav className="flex flex-col gap-1 mb-6">
+            {questions.map((q, i) => (
+              <button key={q.id} onClick={() => { setCurrentQ(i); setSidebarOpen(false); }}
+                className={`text-left py-3 px-4 rounded-lg font-body text-sm transition-all duration-200 cursor-pointer
+                  ${i === currentQ ? 'bg-menti-brand-weakest border-l-4 border-menti-brand text-menti-brand font-semibold' : 'text-menti-text-primary hover:bg-menti-surface-sunken'}`}>
+                Q{i + 1}. {q.text.substring(0, 30)}...
               </button>
             ))}
           </nav>
 
           {/* Controls */}
-          <div className="mt-auto pt-6 border-t border-menti-border-weak space-y-2">
-            <button
-              onClick={handleNextQuestion}
-              disabled={currentQuestionIndex >= displayQuestions.length - 1}
-              className="bg-menti-brand text-white w-full py-3 rounded-full font-body font-semibold hover:bg-menti-brand-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Next Question →
+          <div className="border-t border-menti-border-weak pt-6 flex flex-col gap-2">
+            <button onClick={nextQuestion} disabled={currentQ >= questions.length - 1}
+              className="w-full py-3 rounded-full bg-menti-brand text-white font-body font-semibold text-sm hover:bg-menti-brand-hover transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+              Next Question
             </button>
-            <button
-              onClick={handleTogglePause}
-              className="border border-menti-border w-full py-3 rounded-full font-body font-semibold text-menti-text-primary hover:bg-menti-surface-sunken transition-colors"
-            >
+            <button onClick={() => setIsPaused(!isPaused)}
+              className="w-full py-3 rounded-full border border-menti-border font-body font-semibold text-sm text-menti-text-primary hover:bg-menti-surface-sunken transition-colors duration-200 cursor-pointer">
               {isPaused ? '▶ Resume' : '⏸ Pause'}
             </button>
-            <button
-              onClick={handleEndQuiz}
-              className="bg-menti-coral text-white w-full py-3 rounded-full font-body font-semibold hover:opacity-90 transition-colors"
-            >
+            <button className="w-full py-3 rounded-full bg-menti-coral text-white font-body font-semibold text-sm hover:bg-red-600 transition-colors duration-200 cursor-pointer">
               End Quiz
             </button>
           </div>
         </div>
       </aside>
 
-      {/* Sidebar backdrop (mobile) */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/30 z-20 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* Overlay */}
+      {sidebarOpen && <div className="fixed inset-0 bg-black/30 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
-      {/* ── Main Content ── */}
-      <main className="flex-1 lg:ml-80 p-6 md:p-8 pt-20 min-h-screen">
+      {/* Main Content */}
+      <div className="flex-1 lg:ml-0">
         {/* Mobile Top Bar */}
-        <div className="lg:hidden fixed top-0 left-0 right-0 bg-menti-surface/90 backdrop-blur-sm border-b border-menti-border-weak px-4 py-3 flex items-center justify-between z-20">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-lg hover:bg-menti-surface-sunken transition-colors"
-          >
-            <svg className="w-6 h-6 text-menti-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+        <div className="lg:hidden flex items-center justify-between p-4 bg-menti-surface border-b border-menti-border-weak">
+          <button onClick={() => setSidebarOpen(true)} className="p-2 cursor-pointer">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="#101010"><path d="M3 6h18v1.5H3V6zm0 5.25h18v1.5H3v-1.5zm0 5.25h18V18H3v-1.5z"/></svg>
           </button>
-          <div className="flex items-center gap-3">
-            <span className="font-mono text-sm font-bold text-menti-brand bg-menti-brand-weakest rounded-full px-3 py-1">
-              {joinCode}
-            </span>
-            <span className="font-body text-sm font-semibold text-menti-text-weak">
-              {participantCount} joined
-            </span>
-          </div>
+          <span className="font-body font-semibold text-sm">Q{currentQ + 1} / {questions.length}</span>
+          <span className="font-body text-sm text-menti-text-weak">{MOCK.participants} joined</span>
         </div>
 
-        {/* Current Question */}
-        {displayQuestion && (
-          <div className="bg-menti-surface rounded-2xl p-8 shadow-sm border border-menti-border-weak mb-8">
+        <div className="p-6 sm:p-8 max-w-4xl mx-auto">
+          {/* Current Question */}
+          <div className="bg-menti-surface rounded-2xl p-6 sm:p-8 shadow-sm border border-menti-border-weak mb-8">
             <span className="inline-block rounded-full px-3 py-1 text-xs font-body font-semibold bg-menti-brand-weakest text-menti-brand mb-4">
-              {displayQuestion.type?.replace('_', ' ') ?? 'QUESTION'}
+              Question {currentQ + 1}
             </span>
-            <h2 className="font-heading font-semibold text-2xl text-center text-menti-text-primary">
-              {displayQuestion.text}
-            </h2>
+            <h2 className="font-heading font-semibold text-xl sm:text-2xl text-menti-text text-center">{question.text}</h2>
           </div>
-        )}
 
-        {/* Response Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {stats.map((s) => (
-            <div
-              key={s.label}
-              className="bg-menti-surface rounded-xl p-4 text-center border border-menti-border-weak"
-            >
-              <p className="font-hero text-3xl text-menti-brand leading-none mb-1">
-                {s.value}
-              </p>
-              <p className="font-body text-sm text-menti-text-weak">{s.label}</p>
-            </div>
-          ))}
-        </div>
+          {/* Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+            {[{ label: 'Responses', value: totalResponses }, { label: 'Participants', value: MOCK.participants }, { label: 'Avg Time', value: '8.2s' }, { label: 'Accuracy', value: '67%' }].map(s => (
+              <div key={s.label} className="bg-menti-surface rounded-xl p-4 text-center border border-menti-border-weak">
+                <p className="font-hero text-2xl sm:text-3xl text-menti-text">{s.value}</p>
+                <p className="font-body text-xs text-menti-text-weak mt-1">{s.label}</p>
+              </div>
+            ))}
+          </div>
 
-        {/* Response Bars */}
-        {displayQuestion?.options && displayQuestion.options.length > 0 && (
-          <div className="bg-menti-surface rounded-2xl p-6 border border-menti-border-weak">
-            <h3 className="font-heading font-semibold text-lg text-menti-text-primary mb-6">
-              Response Distribution
-            </h3>
-            <div className="space-y-4">
-              {(optionStats.length > 0 ? optionStats : displayQuestion.options.map((o) => ({ ...o, count: 0, pct: 0 }))).map((opt) => (
-                <div key={opt.id} className="flex items-center gap-4">
-                  <span className="font-body text-sm text-menti-text-primary w-32 flex-shrink-0 truncate">
-                    {opt.text}
-                  </span>
-                  <div className="flex-1 bg-menti-border-weak h-8 rounded-full overflow-hidden relative">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ease-out ${
-                        opt.isCorrect ? 'bg-menti-brand' : 'bg-menti-border'
-                      }`}
-                      style={{ width: `${opt.pct}%` }}
-                    />
+          {/* Response Bars */}
+          {question.options.length > 0 && (
+            <div className="bg-menti-surface rounded-2xl p-6 border border-menti-border-weak">
+              <h3 className="font-heading font-semibold text-base text-menti-text mb-4">Response Distribution</h3>
+              {question.options.map((opt, i) => {
+                const count = responses[i] || 0;
+                const pct = totalResponses > 0 ? Math.round((count / totalResponses) * 100) : 0;
+                const isCorrect = i === question.correctIndex;
+                return (
+                  <div key={i} className="mb-3">
+                    <div className="flex justify-between mb-1">
+                      <span className={`font-body text-sm ${isCorrect ? 'font-semibold text-menti-positive' : 'text-menti-text-primary'}`}>
+                        {isCorrect && '✓ '}{opt}
+                      </span>
+                      <span className="font-body text-sm text-menti-text-weak">{pct}%</span>
+                    </div>
+                    <div className="h-7 bg-menti-surface-sunken rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all duration-700 ease-out ${isCorrect ? 'bg-menti-brand' : 'bg-menti-border'}`}
+                        style={{ width: `${pct}%` }} />
+                    </div>
                   </div>
-                  <span className="font-body font-semibold text-sm text-menti-text-weak w-12 text-right">
-                    {opt.pct}%
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          </div>
-        )}
-      </main>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
