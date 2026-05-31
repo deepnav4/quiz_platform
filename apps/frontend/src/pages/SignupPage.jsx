@@ -1,45 +1,131 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function SignupPage() {
-  const { signup, user } = useAuth();
-  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-
-  if (user) { navigate('/'); return null; }
+  const [loading, setLoading] = useState(false);
+  const { signup } = useAuth();
+  const navigate = useNavigate();
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+
+    setLoading(true);
     try {
       await signup(email, password, name);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Signup failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: '40px auto' }}>
-      <h1>Sign Up</h1>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: 10 }}>
-          <label>Name<br/><input type="text" value={name} onChange={e => setName(e.target.value)} required style={{ width: '100%', padding: 8 }} /></label>
+    <div className="max-w-md mx-auto mt-16 bg-menti-surface rounded-2xl shadow-lg p-8">
+      <h1 className="font-heading font-semibold text-3xl mb-2 text-menti-text">
+        Create your account
+      </h1>
+      <p className="font-body text-menti-text-weak mb-8">
+        Sign up to start creating quizzes on Quizora
+      </p>
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <label htmlFor="name" className="font-body font-semibold text-sm mb-1.5 block text-menti-text-primary">
+            Name
+          </label>
+          <input
+            id="name"
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Your full name"
+            className="w-full px-4 py-3 rounded-xl bg-menti-surface-sunken border border-menti-border-weak focus:border-menti-brand focus:ring-2 focus:ring-menti-brand-weakest outline-none transition font-body text-sm"
+          />
         </div>
-        <div style={{ marginBottom: 10 }}>
-          <label>Email<br/><input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={{ width: '100%', padding: 8 }} /></label>
+
+        <div>
+          <label htmlFor="email" className="font-body font-semibold text-sm mb-1.5 block text-menti-text-primary">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            className="w-full px-4 py-3 rounded-xl bg-menti-surface-sunken border border-menti-border-weak focus:border-menti-brand focus:ring-2 focus:ring-menti-brand-weakest outline-none transition font-body text-sm"
+          />
         </div>
-        <div style={{ marginBottom: 10 }}>
-          <label>Password<br/><input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} style={{ width: '100%', padding: 8 }} /></label>
+
+        <div>
+          <label htmlFor="password" className="font-body font-semibold text-sm mb-1.5 block text-menti-text-primary">
+            Password
+          </label>
+          <input
+            id="password"
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            className="w-full px-4 py-3 rounded-xl bg-menti-surface-sunken border border-menti-border-weak focus:border-menti-brand focus:ring-2 focus:ring-menti-brand-weakest outline-none transition font-body text-sm"
+          />
         </div>
-        <button type="submit" style={{ padding: '8px 20px' }}>Sign Up</button>
+
+        <div>
+          <label htmlFor="confirmPassword" className="font-body font-semibold text-sm mb-1.5 block text-menti-text-primary">
+            Confirm Password
+          </label>
+          <input
+            id="confirmPassword"
+            type="password"
+            required
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="••••••••"
+            className="w-full px-4 py-3 rounded-xl bg-menti-surface-sunken border border-menti-border-weak focus:border-menti-brand focus:ring-2 focus:ring-menti-brand-weakest outline-none transition font-body text-sm"
+          />
+        </div>
+
+        {error && (
+          <p className="text-menti-coral text-sm mt-2 font-body">{error}</p>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-3 rounded-full bg-menti-brand text-white font-body font-semibold hover:bg-menti-brand-hover transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {loading ? 'Creating account…' : 'Create account'}
+        </button>
       </form>
-      <p>Already have an account? <Link to="/login">Login</Link></p>
+
+      <p className="text-center mt-6 text-sm font-body text-menti-text-weak">
+        Already have an account?{' '}
+        <Link to="/login" className="text-menti-brand font-semibold hover:underline">
+          Log in
+        </Link>
+      </p>
     </div>
   );
 }
