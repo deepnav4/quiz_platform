@@ -50,7 +50,16 @@ export async function getSession(req, res, next) {
     const session = await prisma.session.findUnique({
       where: { id: req.params.sessionId },
       include: {
-        quiz: { select: { title: true, id: true } },
+        quiz: {
+          select: {
+            title: true,
+            id: true,
+            questions: {
+              select: { id: true, text: true, order: true },
+              orderBy: { order: "asc" },
+            },
+          },
+        },
         sessionState: true,
         participants: {
           include: { user: { select: { id: true, name: true, email: true } } },

@@ -5,7 +5,8 @@ import { useSocket } from '../context/SocketContext.jsx';
 import { onMessage } from '../api/socket.js';
 import { getSession } from '../api/session.js';
 import LiveLeaderboard from '../components/LiveLeaderboard.jsx';
-import HostVoteBars from '../components/HostVoteBars.jsx';
+import HostVoteBars, { truncateQuestion } from '../components/HostVoteBars.jsx';
+import { useHostFullscreenPause } from '../hooks/useHostFullscreenPause.js';
 
 export default function HostControlPage() {
   const { sessionId } = useParams();
@@ -49,6 +50,23 @@ export default function HostControlPage() {
   // Live votes: optionId -> [{ userId, name }]
   const [votesByOption, setVotesByOption] = useState({});
   const [voteStats, setVoteStats] = useState(null);
+  const [questionList, setQuestionList] = useState([]);
+
+  const quizActive = Boolean(currentQuestion && view === 'question');
+  const { pausedByFullscreen, requestFullscreen, isFullscreen } = useHostFullscreenPause({
+    sessionId,
+    sendMessage,
+    quizActive,
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.add('overflow-hidden');
+    document.body.classList.add('overflow-hidden');
+    return () => {
+      document.documentElement.classList.remove('overflow-hidden');
+      document.body.classList.remove('overflow-hidden');
+    };
+  }, []);
 
   // ---------- Fetch session on mount ----------
   useEffect(() => {
@@ -59,6 +77,9 @@ export default function HostControlPage() {
         if (!cancelled) {
           setSession(res.session);
           hostIdRef.current = res.session.hostId || res.session.host?.id;
+          const qs = res.session.quiz?.questions ?? [];
+          setQuestionList(qs.length ? qs : []);
+          if (qs.length) setTotalQuestions((n) => Math.max(n, qs.length));
           const nonHost =
             res.session.participants?.filter(
               (p) => String(p.userId) !== String(res.session.hostId)
@@ -98,6 +119,15 @@ export default function HostControlPage() {
           setCurrentQuestion(data);
           setQuestionIndex(data.questionIndex ?? 0);
           setTotalQuestions(data.totalQuestions ?? 0);
+          if (data.text && data.questionIndex != null) {
+            setQuestionList((prev) => {
+              const next = [...prev];
+              const idx = data.questionIndex;
+              while (next.length <= idx) next.push({ id: `q-${next.length}`, text: '' });
+              next[idx] = { ...next[idx], id: data.questionId, text: data.text };
+              return next;
+            });
+          }
           setResponseCount(0);
           setVotesByOption({});
           setVoteStats(null);
@@ -210,6 +240,16 @@ export default function HostControlPage() {
           break;
         }
 
+        case 'quiz_paused': {
+          setIsPaused(true);
+          break;
+        }
+
+        case 'quiz_resumed': {
+          setIsPaused(false);
+          break;
+        }
+
         case 'quiz_ended': {
           navigate(`/session/${sessionId}/results`);
           break;
@@ -318,9 +358,18 @@ export default function HostControlPage() {
   };
 
   // ---------- Loading / Error ----------
+  const progressItems = useMemo(() => {
+    const n = Math.max(totalQuestions, questionList.length);
+    if (n === 0) return [];
+    return Array.from({ length: n }, (_, i) => ({
+      index: i,
+      text: questionList[i]?.text ?? '',
+    }));
+  }, [totalQuestions, questionList]);
+
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-menti-bg">
+      <div className="flex h-screen w-screen items-center justify-center bg-menti-bg">
         <div className="text-center">
           <div className="w-10 h-10 border-4 border-menti-brand border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="font-body text-menti-text-weak">Loading session…</p>
@@ -331,7 +380,7 @@ export default function HostControlPage() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-menti-bg">
+      <div className="flex h-screen w-screen items-center justify-center bg-menti-bg">
         <div className="bg-menti-surface rounded-2xl p-8 text-center border border-menti-border-weak max-w-md">
           <p className="font-body text-menti-coral mb-4">{error}</p>
           <button onClick={() => navigate(-1)} className="px-6 py-2 rounded-full bg-menti-brand text-white font-body font-semibold text-sm hover:bg-menti-brand-hover transition-colors cursor-pointer">
@@ -359,38 +408,35 @@ export default function HostControlPage() {
     }));
 
     return (
-      <div className="bg-menti-surface rounded-2xl p-6 border border-menti-border-weak">
-        <h3 className="font-heading font-semibold text-base text-menti-text mb-4">Response Distribution</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-          <div className="bg-menti-surface-sunken rounded-xl p-3 text-center">
-            <p className="font-hero text-2xl text-menti-text">{questionResult.totalResponses ?? 0}</p>
-            <p className="font-body text-xs text-menti-text-weak mt-1">Responses</p>
-          </div>
-          <div className="bg-menti-surface-sunken rounded-xl p-3 text-center">
-            <p className="font-hero text-2xl text-menti-text">{questionResult.correctResponses ?? 0}</p>
-            <p className="font-body text-xs text-menti-text-weak mt-1">Correct</p>
-          </div>
-          <div className="bg-menti-surface-sunken rounded-xl p-3 text-center">
-            <p className="font-hero text-2xl text-menti-text">{questionResult.correctionRate != null ? `${Math.round(questionResult.correctionRate)}%` : '—'}</p>
-            <p className="font-body text-xs text-menti-text-weak mt-1">Accuracy</p>
-          </div>
-          <div className="bg-menti-surface-sunken rounded-xl p-3 text-center">
-            <p className="font-hero text-2xl text-menti-text">{participantCount}</p>
-            <p className="font-body text-xs text-menti-text-weak mt-1">Participants</p>
-          </div>
+      <div className="bg-menti-surface rounded-2xl p-5 border border-menti-border-weak flex-1 min-h-0 flex flex-col overflow-hidden shadow-sm">
+        <h3 className="font-heading text-base font-semibold text-menti-text mb-3 shrink-0">Response distribution</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 shrink-0">
+          {[
+            [questionResult.totalResponses ?? 0, 'Resp.'],
+            [questionResult.correctResponses ?? 0, 'OK'],
+            [questionResult.correctionRate != null ? `${Math.round(questionResult.correctionRate)}%` : '—', 'Acc.'],
+            [participantCount, 'Ppl.'],
+          ].map(([val, label]) => (
+            <div key={label} className="bg-menti-surface-sunken rounded-lg p-2 text-center">
+              <p className="font-hero text-lg text-menti-text">{val}</p>
+              <p className="font-body text-[10px] text-menti-text-weak">{label}</p>
+            </div>
+          ))}
         </div>
-        <HostVoteBars
-          options={resultBarOptions}
-          totalVotes={total}
-          revealed={true}
-          votesByOption={votesByOption}
-        />
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <HostVoteBars
+            options={resultBarOptions}
+            totalVotes={total}
+            revealed={true}
+            votesByOption={votesByOption}
+          />
+        </div>
       </div>
     );
   };
 
   const renderLeaderboard = () => (
-    <div className="bg-menti-surface rounded-2xl p-6 sm:p-8 border border-menti-border-weak">
+    <div className="bg-menti-surface rounded-2xl p-5 border border-menti-border-weak flex-1 min-h-0 flex flex-col shadow-sm">
       <LiveLeaderboard
         leaderboard={leaderboard}
         title="Live Leaderboard"
@@ -399,43 +445,65 @@ export default function HostControlPage() {
     </div>
   );
 
-  // ---------- Main render ----------
+  // ---------- Main render — 100vw × 100vh, left scroll only ----------
   return (
-    <div className="flex min-h-screen bg-menti-bg">
-      {/* Sidebar */}
-      <aside className={`fixed lg:static top-0 left-0 h-screen w-72 sm:w-80 bg-menti-surface border-r border-menti-border-weak z-40 transform transition-transform duration-300 overflow-y-auto
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-        <div className="p-6 pt-8">
-          {/* Session Info */}
-          <div className="bg-menti-brand-weakest rounded-2xl p-4 mb-6">
-            <p className="font-body text-xs text-menti-text-weak mb-1">Join Code</p>
-            <p className="font-mono text-xl font-bold text-menti-brand tracking-wider">{joinCode}</p>
-            <p className="font-body text-sm font-semibold text-menti-text mt-2">{participantCount} participants</p>
-            {!connected && (
-              <p className="font-body text-xs text-menti-coral mt-1">● Disconnected</p>
-            )}
+    <div className="fixed inset-0 w-screen h-screen flex bg-menti-bg overflow-hidden">
+      {/* Sidebar: join + scrollable progress + fixed controls */}
+      <aside
+        className={`flex flex-col w-64 sm:w-72 shrink-0 h-full bg-menti-surface border-r border-menti-border-weak z-40 transform transition-transform duration-300
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
+        fixed lg:relative inset-y-0 left-0`}
+      >
+        <div className="shrink-0 p-4 border-b border-menti-border-weak">
+          <div className="bg-menti-brand-weakest rounded-xl p-4">
+            <p className="font-body text-xs text-menti-text-weak uppercase tracking-wide">Join code</p>
+            <p className="font-mono text-xl font-bold text-menti-brand tracking-wider mt-0.5">{joinCode}</p>
+            <p className="font-body text-sm font-semibold text-menti-text mt-2">{participantCount} players</p>
+            {!connected && <p className="font-body text-xs text-menti-coral mt-1">Reconnecting…</p>}
           </div>
+        </div>
 
-          {/* Current question indicator */}
-          <h3 className="font-heading font-semibold text-xs text-menti-text-weaker uppercase tracking-wider mb-3">PROGRESS</h3>
-          <nav className="flex flex-col gap-1 mb-6">
-            {totalQuestions > 0 ? (
-              Array.from({ length: totalQuestions }, (_, i) => (
-                <div key={i}
-                  className={`text-left py-3 px-4 rounded-lg font-body text-sm transition-all duration-200
-                    ${i === questionIndex ? 'bg-menti-brand-weakest border-l-4 border-menti-brand text-menti-brand font-semibold' : 'text-menti-text-primary'}`}>
-                  Q{i + 1}{i === questionIndex && currentQuestion ? `. ${currentQuestion.text?.substring(0, 25)}…` : ''}
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          <h3 className="shrink-0 px-4 pt-3 pb-2 font-heading text-xs font-semibold text-menti-text-weak uppercase tracking-wider">
+            All questions
+          </h3>
+          <nav className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-3 pb-2 space-y-0.5">
+            {progressItems.length > 0 ? (
+              progressItems.map(({ index, text }) => (
+                <div
+                  key={index}
+                  className={`flex gap-2 items-start py-2 px-2.5 rounded-lg text-left transition-colors ${
+                    index === questionIndex
+                      ? 'bg-menti-brand-weakest border-l-[3px] border-menti-brand'
+                      : index < questionIndex
+                        ? 'opacity-60'
+                        : ''
+                  }`}
+                >
+                  <span
+                    className={`shrink-0 font-body text-xs font-bold ${
+                      index === questionIndex ? 'text-menti-brand' : 'text-menti-text-weak'
+                    }`}
+                  >
+                    Q{index + 1}
+                  </span>
+                  <span
+                    className="font-body text-xs text-menti-text-primary leading-snug line-clamp-2 min-w-0 flex-1"
+                    title={text || undefined}
+                  >
+                    {text ? truncateQuestion(text, 52) : 'Question preview loading…'}
+                  </span>
                 </div>
               ))
             ) : (
-              <p className="font-body text-sm text-menti-text-weak px-4">Waiting for quiz to start…</p>
+              <p className="font-body text-xs text-menti-text-weak px-2 py-4">Waiting to start…</p>
             )}
           </nav>
+        </div>
 
-          {/* Controls */}
-          <div className="border-t border-menti-border-weak pt-6 flex flex-col gap-2">
+        <div className="shrink-0 p-3 border-t border-menti-border-weak flex flex-col gap-1.5 max-h-[42vh] overflow-y-auto">
             <button onClick={handleNextQuestion}
-              className="w-full py-3 rounded-full bg-menti-brand text-white font-body font-semibold text-sm hover:bg-menti-brand-hover transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-2.5 rounded-full bg-menti-brand text-white font-body font-semibold text-xs hover:bg-menti-brand-hover transition-colors cursor-pointer disabled:opacity-50"
               disabled={!connected}>
               {view === 'leaderboard'
                 ? 'Next Question →'
@@ -446,7 +514,7 @@ export default function HostControlPage() {
 
             {view === 'question' && currentQuestion && !timeUp && !currentQuestion.hasTimeLimit && (
               <button onClick={handleRevealAnswers}
-                className="w-full py-3 rounded-full border border-menti-border font-body font-semibold text-sm text-menti-text-primary hover:bg-menti-surface-sunken transition-colors duration-200 cursor-pointer">
+                className="w-full py-2 rounded-full border border-menti-border font-body font-semibold text-xs text-menti-text-primary hover:bg-menti-surface-sunken transition-colors cursor-pointer">
                 End & Reveal Answers
               </button>
             )}
@@ -484,116 +552,154 @@ export default function HostControlPage() {
               </p>
             )}
 
-            <button onClick={isPaused ? handleResume : handlePause}
-              className="w-full py-3 rounded-full border border-menti-border font-body font-semibold text-sm text-menti-text-primary hover:bg-menti-surface-sunken transition-colors duration-200 cursor-pointer">
-              {isPaused ? '▶ Resume' : '⏸ Pause'}
+            <button
+              onClick={isPaused || pausedByFullscreen ? handleResume : handlePause}
+              disabled={pausedByFullscreen}
+              className="w-full py-3 rounded-full border border-menti-border font-body font-semibold text-sm text-menti-text-primary hover:bg-menti-surface-sunken transition-colors duration-200 cursor-pointer disabled:opacity-50"
+            >
+              {isPaused || pausedByFullscreen ? '▶ Resume' : '⏸ Pause'}
             </button>
 
             <button onClick={handleEndQuiz}
-              className="w-full py-3 rounded-full bg-menti-coral text-white font-body font-semibold text-sm hover:bg-red-600 transition-colors duration-200 cursor-pointer">
+              className="w-full py-2.5 rounded-full bg-menti-coral text-white font-body font-semibold text-xs hover:bg-red-600 transition-colors cursor-pointer">
               End Quiz
             </button>
-          </div>
         </div>
       </aside>
 
-      {/* Overlay */}
-      {sidebarOpen && <div className="fixed inset-0 bg-black/30 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/30 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
 
-      {/* Main Content */}
-      <div className="flex-1 lg:ml-0">
-        {/* Mobile Top Bar */}
-        <div className="lg:hidden flex items-center justify-between p-4 bg-menti-surface border-b border-menti-border-weak">
-          <button onClick={() => setSidebarOpen(true)} className="p-2 cursor-pointer">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="#101010"><path d="M3 6h18v1.5H3V6zm0 5.25h18v1.5H3v-1.5zm0 5.25h18V18H3v-1.5z"/></svg>
-          </button>
-          <span className="font-body font-semibold text-sm">Q{questionIndex + 1} / {totalQuestions || '?'}</span>
-          <span className="font-body text-sm text-menti-text-weak">{participantCount} joined</span>
-        </div>
-
-        <div className="p-6 sm:p-8 max-w-4xl mx-auto">
-          {/* --- QUESTION VIEW --- */}
-          {view === 'question' && (
-            <>
-              {/* Waiting state */}
-              {!currentQuestion && (
-                <div className="bg-menti-surface rounded-2xl p-8 sm:p-12 shadow-sm border border-menti-border-weak text-center">
-                  <div className="w-12 h-12 border-4 border-menti-brand border-t-transparent rounded-full animate-spin mx-auto mb-6" />
-                  <h2 className="font-heading font-semibold text-xl text-menti-text mb-2">Waiting to start</h2>
-                  <p className="font-body text-menti-text-weak">Press "Start Quiz" to send the first question, or wait for participants to join.</p>
-                  <p className="font-mono text-3xl font-bold text-menti-brand mt-6 tracking-wider">{joinCode}</p>
-                  <p className="font-body text-sm text-menti-text-weak mt-1">{participantCount} participant{participantCount !== 1 && 's'} joined</p>
-                </div>
+      {/* Main stage — fixed viewport; inner vote list scrolls only if needed */}
+      <main className="relative flex-1 min-w-0 h-full flex flex-col overflow-hidden bg-menti-bg">
+        {(isPaused || pausedByFullscreen) && currentQuestion && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+            <div className="bg-menti-surface rounded-2xl shadow-xl px-8 py-6 text-center max-w-sm mx-4">
+              <p className="font-heading text-lg font-semibold text-menti-text mb-1">Quiz paused</p>
+              <p className="font-body text-sm text-menti-text-weak mb-4">
+                {pausedByFullscreen
+                  ? 'Fullscreen was exited. Return to fullscreen to resume automatically.'
+                  : 'Participants cannot answer until you resume.'}
+              </p>
+              {pausedByFullscreen ? (
+                <button
+                  type="button"
+                  onClick={requestFullscreen}
+                  className="bg-menti-brand text-white rounded-full px-6 py-2.5 font-body text-sm font-semibold hover:bg-menti-brand-hover cursor-pointer"
+                >
+                  Enter fullscreen
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleResume}
+                  className="bg-menti-brand text-white rounded-full px-6 py-2.5 font-body text-sm font-semibold hover:bg-menti-brand-hover cursor-pointer"
+                >
+                  Resume quiz
+                </button>
               )}
+            </div>
+          </div>
+        )}
 
-              {/* Active question */}
-              {currentQuestion && (
-                <>
-                  {/* Current Question Card */}
-                  <div className="bg-menti-surface rounded-2xl p-6 sm:p-8 shadow-sm border border-menti-border-weak mb-8">
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="inline-block rounded-full px-3 py-1 text-xs font-body font-semibold bg-menti-brand-weakest text-menti-brand">
-                        Question {questionIndex + 1} of {totalQuestions}
+        <header className="shrink-0 flex items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-menti-surface border-b border-menti-border-weak">
+          <div className="lg:hidden">
+            <button type="button" onClick={() => setSidebarOpen(true)} className="p-2 cursor-pointer" aria-label="Open menu">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="#101010"><path d="M3 6h18v1.5H3V6zm0 5.25h18v1.5H3v-1.5zm0 5.25h18V18H3v-1.5z"/></svg>
+            </button>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-body text-xs text-menti-text-weak uppercase tracking-wide">Host control</p>
+            <p className="font-heading text-base font-semibold text-menti-text truncate">
+              {session?.quiz?.title || 'Live session'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={requestFullscreen}
+            className="shrink-0 rounded-full border border-menti-border px-3 py-1.5 font-body text-xs font-semibold text-menti-text-primary hover:bg-menti-surface-sunken cursor-pointer"
+          >
+            {isFullscreen ? 'Fullscreen on' : 'Fullscreen'}
+          </button>
+        </header>
+
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col px-4 sm:px-6 py-4">
+          <div className="mx-auto w-full max-w-3xl flex-1 min-h-0 flex flex-col">
+            {view === 'question' && !currentQuestion && (
+              <div className="flex-1 flex items-center justify-center rounded-2xl bg-menti-surface border border-menti-border-weak p-10 text-center">
+                <div>
+                  <div className="w-11 h-11 border-4 border-menti-brand/30 border-t-menti-brand rounded-full animate-spin mx-auto mb-4" />
+                  <h2 className="font-heading text-xl font-semibold text-menti-text mb-2">Ready to start</h2>
+                  <p className="font-body text-sm text-menti-text-weak">
+                    Use <strong>Start Quiz</strong> in the sidebar when players have joined.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {view === 'question' && currentQuestion && (
+              <div className="flex-1 min-h-0 flex flex-col gap-4">
+                <section className="shrink-0 rounded-2xl bg-menti-surface border border-menti-border-weak p-5 sm:p-6 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <span className="rounded-full bg-menti-brand-weakest px-3 py-1 font-body text-xs font-semibold text-menti-brand">
+                      Question {questionIndex + 1} of {totalQuestions}
+                    </span>
+                    {timeLeft !== null && (
+                      <span
+                        className={`font-mono text-sm font-semibold tabular-nums px-3 py-1 rounded-full ${
+                          timeUp || timeLeft === 0
+                            ? 'bg-red-50 text-menti-coral'
+                            : timeLeft <= 5
+                              ? 'bg-red-50 text-menti-coral animate-pulse'
+                              : 'bg-menti-surface-sunken text-menti-text'
+                        }`}
+                      >
+                        {timeUp ? "Time's up" : formatTime(timeLeft)}
                       </span>
-                      {timeLeft !== null && (
-                        <span className={`inline-block rounded-full px-3 py-1 text-xs font-body font-semibold ${timeUp || timeLeft === 0 ? 'bg-red-100 text-menti-coral' : timeLeft <= 5 ? 'bg-red-100 text-menti-coral animate-pulse' : 'bg-menti-surface-sunken text-menti-text'}`}>
-                          {timeUp ? '⏰ Time Up' : `⏱ ${formatTime(timeLeft)}`}
-                        </span>
-                      )}
-                    </div>
-                    {currentQuestion.imageUrl && (
-                      <div className="mb-4 flex justify-center">
-                        <img src={currentQuestion.imageUrl} alt="" className="max-h-48 rounded-xl object-contain" />
-                      </div>
-                    )}
-                    <h2 className="font-heading font-semibold text-xl sm:text-2xl text-menti-text text-center">{currentQuestion.text}</h2>
-                    {currentQuestion.questionType && (
-                      <p className="text-center mt-2 font-body text-xs text-menti-text-weaker uppercase tracking-wider">{currentQuestion.questionType.replace('_', ' ')}</p>
                     )}
                   </div>
+                  <h2 className="font-heading text-lg sm:text-xl text-menti-text leading-relaxed">
+                    {currentQuestion.text}
+                  </h2>
+                </section>
 
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-                    <div className="bg-menti-surface rounded-xl p-4 text-center border border-menti-border-weak">
-                      <p className="font-hero text-2xl sm:text-3xl text-menti-text">{responseCount}</p>
-                      <p className="font-body text-xs text-menti-text-weak mt-1">Responses</p>
+                <section className="shrink-0 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { val: responseCount, label: 'Answers', sub: `of ${participantCount}` },
+                    { val: participantCount, label: 'Players', sub: 'in session' },
+                    { val: currentQuestion.points ?? '—', label: 'Points', sub: 'this question' },
+                    { val: timeLeft !== null ? formatTime(timeLeft) : '—', label: 'Time left', sub: timeUp ? 'ended' : 'remaining' },
+                  ].map((s) => (
+                    <div
+                      key={s.label}
+                      className="rounded-xl bg-menti-surface border border-menti-border-weak px-4 py-3 text-center"
+                    >
+                      <p className="font-hero text-2xl text-menti-brand leading-none">{s.val}</p>
+                      <p className="font-body text-sm font-semibold text-menti-text mt-1">{s.label}</p>
+                      <p className="font-body text-xs text-menti-text-weak">{s.sub}</p>
                     </div>
-                    <div className="bg-menti-surface rounded-xl p-4 text-center border border-menti-border-weak">
-                      <p className="font-hero text-2xl sm:text-3xl text-menti-text">{participantCount}</p>
-                      <p className="font-body text-xs text-menti-text-weak mt-1">Participants</p>
-                    </div>
-                    <div className="bg-menti-surface rounded-xl p-4 text-center border border-menti-border-weak">
-                      <p className="font-hero text-2xl sm:text-3xl text-menti-text">{currentQuestion.points ?? '—'}</p>
-                      <p className="font-body text-xs text-menti-text-weak mt-1">Points</p>
-                    </div>
-                    <div className="bg-menti-surface rounded-xl p-4 text-center border border-menti-border-weak">
-                      <p className="font-hero text-2xl sm:text-3xl text-menti-text">
-                        {timeLeft !== null ? formatTime(timeLeft) : '∞'}
-                      </p>
-                      <p className="font-body text-xs text-menti-text-weak mt-1">Time Left</p>
-                    </div>
-                  </div>
+                  ))}
+                </section>
 
-                  {timeUp && (
-                    <div className="mb-6 rounded-2xl bg-menti-brand-weakest border border-menti-brand-weakest px-4 py-3 text-center animate-fade-in-up">
-                      <p className="font-body text-sm font-semibold text-menti-brand">
-                        Time&apos;s up — correct answers are highlighted below
-                      </p>
-                      <p className="font-body text-xs text-menti-text-weak mt-1">
-                        Use Next Question or Show Leaderboard in the sidebar
-                      </p>
-                    </div>
-                  )}
+                {timeUp && (
+                  <p className="shrink-0 text-center font-body text-sm text-menti-brand bg-menti-brand-weakest rounded-xl py-2 px-3">
+                    Time is up — correct answers are shown below. Use the sidebar for leaderboard or next question.
+                  </p>
+                )}
 
-                  {isMcqOrTf && currentQuestion.options?.length > 0 && (
-                    <div className="bg-menti-surface rounded-2xl p-6 border border-menti-border-weak">
-                      <h3 className="font-heading font-semibold text-base text-menti-text mb-1">
-                        {timeUp ? 'Results' : 'Live votes'}
+                {isMcqOrTf && currentQuestion.options?.length > 0 && (
+                  <section className="flex-1 min-h-0 flex flex-col rounded-2xl bg-menti-surface border border-menti-border-weak shadow-sm overflow-hidden">
+                    <div className="shrink-0 px-5 py-3 border-b border-menti-border-weak">
+                      <h3 className="font-heading text-base font-semibold text-menti-text">
+                        {timeUp ? 'Answer breakdown' : 'Live responses'}
                       </h3>
-                      <p className="font-body text-xs text-menti-text-weak mb-4">
-                        {responseCount} of {participantCount} answered
-                        {!timeUp && ' · correct answer hidden until time is up'}
+                      <p className="font-body text-sm text-menti-text-weak mt-0.5">
+                        {responseCount} of {participantCount} participants answered
+                        {!timeUp && ' · correct answer hidden until time ends'}
                       </p>
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4">
                       <HostVoteBars
                         options={barOptions}
                         totalVotes={voteStats?.totalVotes ?? responseCount}
@@ -601,19 +707,21 @@ export default function HostControlPage() {
                         votesByOption={votesByOption}
                       />
                     </div>
-                  )}
-                </>
-              )}
-            </>
-          )}
+                  </section>
+                )}
+              </div>
+            )}
 
-          {/* --- RESULTS VIEW --- */}
-          {view === 'results' && renderResponseBars()}
+            {view === 'results' && (
+              <div className="flex-1 min-h-0 flex flex-col">{renderResponseBars()}</div>
+            )}
 
-          {/* --- LEADERBOARD VIEW --- */}
-          {view === 'leaderboard' && renderLeaderboard()}
+            {view === 'leaderboard' && (
+              <div className="flex-1 min-h-0 flex flex-col overflow-y-auto">{renderLeaderboard()}</div>
+            )}
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

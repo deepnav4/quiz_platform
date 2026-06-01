@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useSocket } from '../context/SocketContext.jsx';
 import { onMessage } from '../api/socket.js';
 import { getSession, startSession } from '../api/session.js';
+import { requestFullscreen } from '../hooks/useFullscreen.js';
 
 export default function WaitingRoomPage() {
   const { sessionId } = useParams();
@@ -91,6 +92,8 @@ export default function WaitingRoomPage() {
         }
 
         case 'quiz_started': {
+          // Enter fullscreen for immersive quiz experience
+          requestFullscreen();
           if (isHost) {
             navigate(`/session/${sessionId}/host`);
           } else {
