@@ -13,8 +13,10 @@ export function useSocket() {
 export function SocketProvider({ children }) {
   const { token, user } = useAuth();
   const [connected, setConnected] = useState(false);
+  const [socket, setSocket] = useState(null);
   const socketRef = useRef(null);
   const reconnectTimer = useRef(null);
+  const reconnectAttempts = useRef(0);
 
   useEffect(() => {
     if (!token || !user) {
@@ -29,13 +31,27 @@ export function SocketProvider({ children }) {
     function connect() {
       const ws = createSocket(token);
       socketRef.current = ws;
+      setSocket(ws);
 
-      ws.onopen = () => setConnected(true);
-      ws.onclose = () => {
-        setConnected(false);
-        reconnectTimer.current = setTimeout(connect, 3000);
+      ws.onopen = () => {
+        reconnectAttempts.current = 0;
+        setConnected(true);
       };
-      ws.onerror = () => ws.close();
+
+      ws.onclose = (ev) => {
+        console.warn('WS closed', ev.code, ev.reason);
+        setConnected(false);
+        setSocket(null);
+        // exponential backoff with cap
+        reconnectAttempts.current = Math.min(10, reconnectAttempts.current + 1);
+        const wait = Math.min(30000, 500 * 2 ** reconnectAttempts.current);
+        reconnectTimer.current = setTimeout(connect, wait);
+      };
+
+      ws.onerror = (e) => {
+        // Let onclose/reconnect handle it
+        try { ws.close(); } catch (err) { /* ignore */ }
+      };
     }
 
     connect();
@@ -52,11 +68,10 @@ export function SocketProvider({ children }) {
   }, [token, user]);
 
   const sendMessage = useCallback((type, data) => {
-    wsSendMessage(socketRef.current, type, data);
+    return wsSendMessage(socketRef.current, type, data);
   }, []);
-
   return (
-    <SocketContext.Provider value={{ socket: socketRef.current, sendMessage, connected }}>
+    <SocketContext.Provider value={{ socket, sendMessage, connected }}>
       {children}
     </SocketContext.Provider>
   );

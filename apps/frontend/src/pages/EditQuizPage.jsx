@@ -29,7 +29,7 @@ export default function EditQuizPage() {
   const [saving, setSaving] = useState(false);
 
   /* New question form state */
-  const [newQ, setNewQ] = useState({ text: '', type: 'MULTIPLE_CHOICE', options: ['', ''], correctIndex: 0, timeLimit: 30, points: 10 });
+  const [newQ, setNewQ] = useState({ text: '', type: 'MULTIPLE_CHOICE', difficulty: 'MEDIUM', options: ['', ''], correctIndex: 0, timeLimit: 30, points: 10 });
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/login');
@@ -85,7 +85,7 @@ export default function EditQuizPage() {
     const payload = {
       questionType: backendType,
       text: newQ.text,
-      difficulty: 'MEDIUM',
+      difficulty: newQ.difficulty,
       hasTimeLimit: true,
       timeLimitSeconds: newQ.timeLimit,
       points: newQ.points,
@@ -96,7 +96,7 @@ export default function EditQuizPage() {
       await createQuestion(quizId, payload);
       /* Refetch quiz so we get the real backend ID for the new question */
       await fetchQuiz();
-      setNewQ({ text: '', type: 'MULTIPLE_CHOICE', options: ['', ''], correctIndex: 0, timeLimit: 30, points: 10 });
+      setNewQ({ text: '', type: 'MULTIPLE_CHOICE', difficulty: 'MEDIUM', options: ['', ''], correctIndex: 0, timeLimit: 30, points: 10 });
       setShowAddForm(false);
     } catch (err) {
       setError(err.message || 'Failed to add question');
@@ -220,6 +220,15 @@ export default function EditQuizPage() {
               className={`${inputCls} cursor-pointer`}>
               {QUESTION_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
             </select>
+            <div>
+              <label className="font-body font-semibold text-xs text-menti-text-weak block mb-1">Difficulty</label>
+              <select value={newQ.difficulty} onChange={e => setNewQ(p => ({ ...p, difficulty: e.target.value }))}
+                className={`${inputCls} cursor-pointer`}>
+                <option value="EASY">Easy</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HARD">Hard</option>
+              </select>
+            </div>
             <textarea value={newQ.text} onChange={e => setNewQ(p => ({ ...p, text: e.target.value }))} placeholder="Question text..." rows={2} className={`${inputCls} resize-none`} />
 
             {newQ.type !== 'OPEN_ENDED' && newQ.type !== 'TRUE_FALSE' && (

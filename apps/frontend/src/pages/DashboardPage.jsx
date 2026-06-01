@@ -93,7 +93,7 @@ export default function DashboardPage() {
               <p className="font-body text-sm text-menti-text-weak mb-4 line-clamp-2 flex-1">{quiz.description || 'No description'}</p>
               <div className="flex gap-2 flex-wrap mb-4">
                 <span className="bg-menti-brand-weakest text-menti-brand rounded-full px-3 py-1 text-xs font-body font-semibold">
-                  {quiz.questions?.length || 0} questions
+                  {quiz._count?.questions ?? quiz.questions?.length ?? 0} questions
                 </span>
                 {quiz.isAIGenerated && (
                   <span className="bg-violet-50 text-violet-600 rounded-full px-3 py-1 text-xs font-body font-semibold">AI Generated</span>

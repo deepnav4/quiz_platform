@@ -52,9 +52,11 @@ export function AuthProvider({ children }) {
     const demo = DEMO_USERS[email];
     if (demo && demo.password === password) {
       const userData = { id: demo.id, name: demo.name, email: demo.email };
+      const token = 'mock-token-' + Date.now();
+      localStorage.setItem('token', token);
       localStorage.setItem('quizora_user', JSON.stringify(userData));
       setUser(userData);
-      return { user: userData, token: 'mock-token-' + Date.now() };
+      return { user: userData, token };
     }
 
     throw new Error('Invalid email or password. Try demo@quizora.com / demo123');
@@ -79,9 +81,11 @@ export function AuthProvider({ children }) {
 
     /* Mock signup — always succeeds */
     const userData = { id: 'user-' + Date.now(), name: name || 'New User', email };
+    const token = 'mock-token-' + Date.now();
+    localStorage.setItem('token', token);
     localStorage.setItem('quizora_user', JSON.stringify(userData));
     setUser(userData);
-    return { user: userData, token: 'mock-token-' + Date.now() };
+    return { user: userData, token };
   }
 
   function logout() {

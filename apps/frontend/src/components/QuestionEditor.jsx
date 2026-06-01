@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 export default function QuestionEditor({ onSave, onCancel, initial }) {
   const [q, setQ] = useState(initial || {
-    text: '', questionType: 'MULTIPLE_CHOICE_SINGLE', points: 100,
+    text: '', questionType: 'MULTIPLE_CHOICE_SINGLE', difficulty: 'MEDIUM', points: 100,
     hasTimeLimit: false, timeLimitSeconds: 30,
     options: [{ text: '', isCorrect: false }, { text: '', isCorrect: false }],
   });
@@ -25,6 +25,11 @@ export default function QuestionEditor({ onSave, onCancel, initial }) {
           <option value="MULTIPLE_CHOICE_SINGLE">MC Single</option>
           <option value="MULTIPLE_CHOICE_MULTI">MC Multi</option>
           <option value="TRUE_FALSE">True/False</option>
+        </select>
+        <select value={q.difficulty} onChange={e => setQ({ ...q, difficulty: e.target.value })} style={{ marginLeft: 8 }}>
+          <option value="EASY">Easy</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="HARD">Hard</option>
         </select>
       </div>
       <input type="text" value={q.text} onChange={e => setQ({ ...q, text: e.target.value })} placeholder="Question text" required style={{ width: '100%', padding: 8, marginBottom: 8 }} />

@@ -59,6 +59,7 @@ export default function WaitingRoomPage() {
   /* Join the session via WebSocket once connected */
   useEffect(() => {
     if (connected && sessionId) {
+      // ensure join is sent when socket is open
       sendMessage('join_session', { sessionId });
     }
   }, [connected, sessionId, sendMessage]);
@@ -106,7 +107,14 @@ export default function WaitingRoomPage() {
   /* Host starts the quiz */
   const handleStart = () => {
     setStarting(true);
-    sendMessage('start_quiz', { sessionId });
+    const ok = sendMessage('start_quiz', { sessionId });
+    if (!ok) {
+      // If WS send failed, show a friendly error and allow retry
+      console.warn('Start quiz failed: not connected to WS');
+      setStarting(false);
+      alert('Unable to start quiz: not connected to the real-time server. Try refreshing the page.');
+      return;
+    }
     // Navigation will be handled by the 'quiz_started' WS event
   };
 
@@ -192,7 +200,7 @@ export default function WaitingRoomPage() {
 
         {/* Start Button (host only) */}
         {isHost && (
-          <button onClick={handleStart} disabled={participants.length < 1 || starting || !connected}
+          <button onClick={handleStart} disabled={participants.length < 1 || starting}
             className="w-full bg-menti-brand text-white py-4 px-12 rounded-full font-body font-semibold text-lg hover:bg-menti-brand-hover transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:animate-none animate-pulse hover:animate-none">
             {starting ? 'Starting…' : 'Start Quiz'}
           </button>
