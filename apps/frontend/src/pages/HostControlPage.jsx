@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext.jsx';
 import { onMessage } from '../api/socket.js';
 import { getSession } from '../api/session.js';
+import LiveLeaderboard from '../components/LiveLeaderboard.jsx';
+import HostVoteBars from '../components/HostVoteBars.jsx';
 
 export default function HostControlPage() {
   const { sessionId } = useParams();
@@ -41,6 +43,10 @@ export default function HostControlPage() {
   // Leaderboard data (from leaderboard_update event)
   const [leaderboard, setLeaderboard] = useState([]);
 
+  // Live votes: optionId -> [{ userId, name }]
+  const [votesByOption, setVotesByOption] = useState({});
+  const [voteStats, setVoteStats] = useState(null);
+
   // ---------- Fetch session on mount ----------
   useEffect(() => {
     let cancelled = false;
@@ -49,7 +55,13 @@ export default function HostControlPage() {
         const res = await getSession(sessionId);
         if (!cancelled) {
           setSession(res.session);
-          setParticipantCount(res.session.participantCount || 0);
+          const nonHost =
+            res.session.participants?.filter(
+              (p) => String(p.userId) !== String(res.session.hostId)
+            ) ?? [];
+          setParticipantCount(
+            res.session.participantCount ?? nonHost.filter((p) => p.isActive !== false).length
+          );
         }
       } catch (err) {
         if (!cancelled) setError('Failed to load session.');
@@ -79,8 +91,11 @@ export default function HostControlPage() {
           setQuestionIndex(data.questionIndex ?? 0);
           setTotalQuestions(data.totalQuestions ?? 0);
           setResponseCount(0);
+          setVotesByOption({});
+          setVoteStats(null);
           setTimeUp(false);
           setQuestionResult(null);
+          setLeaderboard([]);
           setView('question');
 
           // Start local countdown if time-limited
@@ -94,6 +109,42 @@ export default function HostControlPage() {
 
         case 'response_count': {
           setResponseCount(data.count ?? 0);
+          if (data.total != null) setParticipantCount(data.total);
+          break;
+        }
+
+        case 'host_participant_voted': {
+          const { userId, name, optionIds } = data || {};
+          if (!optionIds?.length) break;
+          setVotesByOption((prev) => {
+            const next = { ...prev };
+            for (const optId of optionIds) {
+              const list = next[optId] ? [...next[optId]] : [];
+              if (!list.some((v) => String(v.userId) === String(userId))) {
+                list.push({ userId, name: name || 'Player' });
+              }
+              next[optId] = list;
+            }
+            return next;
+          });
+          break;
+        }
+
+        case 'vote_stats': {
+          setVoteStats(data);
+          if (data?.options) {
+            const byOpt = {};
+            for (const o of data.options) {
+              byOpt[o.id] = o.voters || [];
+            }
+            setVotesByOption((prev) => ({ ...byOpt, ...prev, ...byOpt }));
+          }
+          if (data?.revealCorrect) setTimeUp(true);
+          break;
+        }
+
+        case 'session_joined': {
+          if (data?.participantCount != null) setParticipantCount(data.participantCount);
           break;
         }
 
@@ -187,6 +238,18 @@ export default function HostControlPage() {
     sendMessage('get_leaderboard', { sessionId });
   }, [sendMessage, sessionId]);
 
+  const handleRevealAnswers = useCallback(() => {
+    if (currentQuestion?.questionId) {
+      sendMessage('reveal_answers', { sessionId, questionId: currentQuestion.questionId });
+    }
+  }, [sendMessage, sessionId, currentQuestion]);
+
+  const isMcqOrTf =
+    currentQuestion &&
+    ['MULTIPLE_CHOICE_SINGLE', 'MULTIPLE_CHOICE_MULTI', 'TRUE_FALSE'].includes(
+      currentQuestion.questionType
+    );
+
   const handleBackToQuestion = useCallback(() => {
     setView('question');
   }, []);
@@ -268,6 +331,7 @@ export default function HostControlPage() {
                 <div className={`h-full rounded-full transition-all duration-700 ease-out ${opt.isCorrect ? 'bg-menti-brand' : 'bg-menti-border'}`}
                   style={{ width: `${pct}%` }} />
               </div>
+              {opt.voters?.length > 0 && <OptionVoteChips voters={opt.voters} />}
             </div>
           );
         })}
@@ -275,35 +339,13 @@ export default function HostControlPage() {
     );
   };
 
-  // ---------- Render leaderboard ----------
   const renderLeaderboard = () => (
-    <div className="bg-menti-surface rounded-2xl p-6 border border-menti-border-weak">
-      <h3 className="font-heading font-semibold text-base text-menti-text mb-4">Leaderboard</h3>
-      {leaderboard.length === 0 ? (
-        <p className="font-body text-sm text-menti-text-weak text-center py-6">No leaderboard data yet.</p>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {leaderboard.map((entry) => (
-            <div key={entry.userId} className={`flex items-center gap-4 p-3 rounded-xl ${entry.rank <= 3 ? 'bg-menti-brand-weakest' : 'bg-menti-surface-sunken'}`}>
-              <span className={`font-hero text-xl w-8 text-center ${entry.rank === 1 ? 'text-yellow-500' : entry.rank === 2 ? 'text-gray-400' : entry.rank === 3 ? 'text-amber-600' : 'text-menti-text-weak'}`}>
-                #{entry.rank}
-              </span>
-              {entry.avatar ? (
-                <img src={entry.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-menti-brand-weakest flex items-center justify-center">
-                  <span className="font-body text-sm font-semibold text-menti-brand">{entry.name?.charAt(0)?.toUpperCase()}</span>
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-body text-sm font-semibold text-menti-text truncate">{entry.name}</p>
-              </div>
-              <span className="font-hero text-lg text-menti-brand">{entry.totalScore}</span>
-              {!entry.isActive && <span className="text-xs text-menti-text-weaker">(left)</span>}
-            </div>
-          ))}
-        </div>
-      )}
+    <div className="bg-menti-surface rounded-2xl p-6 sm:p-8 border border-menti-border-weak">
+      <LiveLeaderboard
+        leaderboard={leaderboard}
+        title="Live Leaderboard"
+        subtitle="Visible to everyone until you click Next Question"
+      />
     </div>
   );
 
@@ -345,27 +387,51 @@ export default function HostControlPage() {
             <button onClick={handleNextQuestion}
               className="w-full py-3 rounded-full bg-menti-brand text-white font-body font-semibold text-sm hover:bg-menti-brand-hover transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={!connected}>
-              {currentQuestion ? 'Next Question' : 'Start Quiz'}
+              {view === 'leaderboard'
+                ? 'Next Question →'
+                : currentQuestion
+                  ? 'Next Question'
+                  : 'Start Quiz'}
             </button>
 
-            {view === 'question' && currentQuestion && (
+            {view === 'question' && currentQuestion && !timeUp && !currentQuestion.hasTimeLimit && (
+              <button onClick={handleRevealAnswers}
+                className="w-full py-3 rounded-full border border-menti-border font-body font-semibold text-sm text-menti-text-primary hover:bg-menti-surface-sunken transition-colors duration-200 cursor-pointer">
+                End & Reveal Answers
+              </button>
+            )}
+
+            {view === 'question' && currentQuestion && timeUp && (
               <>
-                <button onClick={handleShowResults}
-                  className="w-full py-3 rounded-full border border-menti-border font-body font-semibold text-sm text-menti-text-primary hover:bg-menti-surface-sunken transition-colors duration-200 cursor-pointer">
-                  Show Results
-                </button>
                 <button onClick={handleShowLeaderboard}
                   className="w-full py-3 rounded-full border border-menti-border font-body font-semibold text-sm text-menti-text-primary hover:bg-menti-surface-sunken transition-colors duration-200 cursor-pointer">
                   Show Leaderboard
                 </button>
+                <button onClick={handleShowResults}
+                  className="w-full py-3 rounded-full border border-menti-border font-body font-semibold text-sm text-menti-text-weak hover:bg-menti-surface-sunken transition-colors duration-200 cursor-pointer">
+                  Show Results
+                </button>
               </>
             )}
 
-            {(view === 'results' || view === 'leaderboard') && (
+            {view === 'question' && currentQuestion && !timeUp && currentQuestion.hasTimeLimit && (
+              <button onClick={handleRevealAnswers}
+                className="w-full py-3 rounded-full border border-menti-coral/40 font-body font-semibold text-sm text-menti-coral hover:bg-red-50 transition-colors duration-200 cursor-pointer">
+                End Question Early
+              </button>
+            )}
+
+            {view === 'results' && (
               <button onClick={handleBackToQuestion}
                 className="w-full py-3 rounded-full border border-menti-border font-body font-semibold text-sm text-menti-text-primary hover:bg-menti-surface-sunken transition-colors duration-200 cursor-pointer">
                 ← Back to Question
               </button>
+            )}
+
+            {view === 'leaderboard' && (
+              <p className="font-body text-xs text-menti-text-weak text-center px-2">
+                Participants see this leaderboard until you advance.
+              </p>
             )}
 
             <button onClick={isPaused ? handleResume : handlePause}
@@ -458,17 +524,39 @@ export default function HostControlPage() {
                     </div>
                   </div>
 
-                  {/* Options preview (if MCQ) */}
-                  {currentQuestion.options && currentQuestion.options.length > 0 && (
+                  {timeUp && (
+                    <div className="mb-6 rounded-2xl bg-menti-brand-weakest border border-menti-brand-weak px-4 py-3 text-center animate-fade-in-up">
+                      <p className="font-body text-sm font-semibold text-menti-brand">
+                        Time&apos;s up — correct answers are highlighted below
+                      </p>
+                      <p className="font-body text-xs text-menti-text-weak mt-1">
+                        Use Next Question or Show Leaderboard in the sidebar
+                      </p>
+                    </div>
+                  )}
+
+                  {isMcqOrTf && currentQuestion.options?.length > 0 && (
                     <div className="bg-menti-surface rounded-2xl p-6 border border-menti-border-weak">
-                      <h3 className="font-heading font-semibold text-base text-menti-text mb-4">Answer Options</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {currentQuestion.options.map((opt, i) => (
-                          <div key={opt.id || i} className="p-3 rounded-xl bg-menti-surface-sunken font-body text-sm text-menti-text-primary">
-                            {typeof opt === 'string' ? opt : opt.text}
-                          </div>
-                        ))}
-                      </div>
+                      <h3 className="font-heading font-semibold text-base text-menti-text mb-1">
+                        {timeUp ? 'Results' : 'Live votes'}
+                      </h3>
+                      <p className="font-body text-xs text-menti-text-weak mb-4">
+                        {responseCount} of {participantCount} answered
+                        {!timeUp && ' · correct answer hidden until time is up'}
+                      </p>
+                      <HostVoteBars
+                        options={voteStats?.options || currentQuestion.options.map((o) => ({
+                          ...o,
+                          count: (votesByOption[o.id] || []).length,
+                          percent: participantCount
+                            ? Math.round(((votesByOption[o.id] || []).length / participantCount) * 100)
+                            : 0,
+                          voters: votesByOption[o.id] || [],
+                        }))}
+                        totalVotes={voteStats?.totalVotes ?? responseCount}
+                        revealed={timeUp}
+                        votesByOption={votesByOption}
+                      />
                     </div>
                   )}
                 </>

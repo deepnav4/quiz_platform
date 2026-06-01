@@ -60,7 +60,22 @@ export async function getSession(req, res, next) {
       },
     });
     if (!session) return res.status(404).json({ message: "Session not found" });
-    res.json({ session });
+
+    const participants = (session.participants || []).filter(
+      (p) => String(p.userId) !== String(session.hostId)
+    );
+    const participantCount = participants.filter((p) => p.isActive).length;
+
+    res.json({
+      session: {
+        ...session,
+        participants,
+        participantCount,
+        sessionState: session.sessionState
+          ? { ...session.sessionState, participantCount }
+          : session.sessionState,
+      },
+    });
   } catch (err) {
     next(err);
   }

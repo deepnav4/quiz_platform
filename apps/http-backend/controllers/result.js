@@ -19,8 +19,11 @@ export async function getSessionResults(req, res, next) {
 export async function getLeaderboard(req, res, next) {
   try {
     const { sessionId } = req.params;
+    const session = await prisma.session.findUnique({ where: { id: sessionId } });
+    if (!session) return res.status(404).json({ message: "Session not found" });
+
     const participants = await prisma.sessionParticipant.findMany({
-      where: { sessionId },
+      where: { sessionId, userId: { not: session.hostId } },
       include: { user: { select: { id: true, name: true, email: true, avatar: true } } },
       orderBy: { totalScore: "desc" },
     });

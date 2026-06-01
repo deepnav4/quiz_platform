@@ -1,4 +1,5 @@
 import { prisma } from "@repo/db";
+import { seedComputerNetworksQuiz } from "./lib/seedComputerNetworksQuiz.js";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 function addMinutes(date, mins) {
@@ -492,11 +493,17 @@ async function main() {
   );
 
   // ──────────────────────────────────────────────────────────────────────
+  // 9. ADVANCED COMPUTER NETWORKS (15 questions — professor / host)
+  // ──────────────────────────────────────────────────────────────────────
+  const { quiz: cnQuiz, session: cnSession } = await seedComputerNetworksQuiz(host.id, now);
+  console.log("");
+
+  // ──────────────────────────────────────────────────────────────────────
   // SUMMARY
   // ──────────────────────────────────────────────────────────────────────
   console.log("[WS] Seed complete! Summary:");
   console.log("   Users: 1 host + 5 participants");
-  console.log("   Quizzes: 3 (Web Dev, Databases, React)");
+  console.log("   Quizzes: 4 (Web Dev, Databases, React, Computer Networks)");
   console.log("");
   console.log("   LIVE session (55551234):");
   console.log("      • Currently on Q2/4 — accepting responses");
@@ -511,6 +518,10 @@ async function main() {
   console.log("");
   console.log("   DRAFT session (11112222):");
   console.log("      • 2 questions prepared, not published yet");
+  console.log("");
+  console.log(`   COMPUTER NETWORKS session (${cnSession.joinCode}):`);
+  console.log(`      • "${cnQuiz.title}" — 15 graduate-level questions`);
+  console.log("      • WAITING_ROOM — host: professor@university.edu / password123");
   console.log("");
   console.log("   WS test scenarios covered:");
   console.log("      ✓ Live question with partial responses");

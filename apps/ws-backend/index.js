@@ -2,7 +2,7 @@ import { WebSocketServer } from "ws";
 import { config } from "./config/index.js";
 import { handleConnection, handleDisconnect } from "./handlers/connection.js";
 import { handleJoinSession, handleLeaveSession } from "./handlers/session.js";
-import { handleNextQuestion, handleSubmitResponse } from "./handlers/question.js";
+import { handleNextQuestion, handleSubmitResponse, handleRevealAnswers } from "./handlers/question.js";
 import { handleStartQuiz, handlePauseQuiz, handleResumeQuiz, handleEndQuiz } from "./handlers/host.js";
 import { handleBroadcastLeaderboard, handleBroadcastQuestionResult } from "./handlers/leaderboard.js";
 
@@ -11,15 +11,20 @@ const wss = new WebSocketServer({ port: config.port });
 wss.on("connection", (ws, req) => {
   handleConnection(ws, req);
 
-  ws.on("message", (raw) => {
-    const message = JSON.parse(raw);
+  ws.on("message", async (raw) => {
+    let message;
+    try {
+      message = JSON.parse(raw);
+    } catch {
+      return;
+    }
 
-    // Route messages to handlers based on type
     const handlers = {
       join_session: handleJoinSession,
       leave_session: handleLeaveSession,
       next_question: handleNextQuestion,
       submit_response: handleSubmitResponse,
+      reveal_answers: handleRevealAnswers,
       start_quiz: handleStartQuiz,
       pause_quiz: handlePauseQuiz,
       resume_quiz: handleResumeQuiz,
@@ -30,7 +35,11 @@ wss.on("connection", (ws, req) => {
 
     const handler = handlers[message.type];
     if (handler) {
-      handler(ws, message.data);
+      try {
+        await handler(ws, message.data);
+      } catch (err) {
+        console.error(`Handler error (${message.type}):`, err);
+      }
     }
   });
 

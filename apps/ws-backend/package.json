@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "node index.js",
-    "seed": "node seed.js"
+    "seed": "node seed.js",
+    "seed:computer-networks": "node seed-computer-networks.js"
   },
   "keywords": [],
   "author": "",

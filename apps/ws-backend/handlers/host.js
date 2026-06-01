@@ -8,9 +8,22 @@ export async function handleStartQuiz(ws, data) {
     if (!ws.user) return sendToOne(ws, { type: "error", data: { message: "Not authenticated" } });
 
     const session = await prisma.session.findUnique({ where: { id: sessionId } });
-    if (!session || session.hostId !== ws.user.id) {
+    if (!session || String(session.hostId) !== String(ws.user.id)) {
       return sendToOne(ws, { type: "error", data: { message: "Not authorized" } });
     }
+
+    // Host is not a quiz participant — remove if they were added in the waiting room
+    await prisma.sessionParticipant.deleteMany({
+      where: { sessionId, userId: session.hostId },
+    });
+
+    const participantCount = await prisma.sessionParticipant.count({
+      where: { sessionId, isActive: true, userId: { not: session.hostId } },
+    });
+    await prisma.sessionState.update({
+      where: { sessionId },
+      data: { participantCount },
+    });
 
     await prisma.session.update({
       where: { id: sessionId },
@@ -33,7 +46,7 @@ export async function handlePauseQuiz(ws, data) {
     if (!ws.user) return;
 
     const session = await prisma.session.findUnique({ where: { id: sessionId } });
-    if (!session || session.hostId !== ws.user.id) return;
+    if (!session || String(session.hostId) !== String(ws.user.id)) return;
 
     stopTimer(sessionId);
 
@@ -58,7 +71,7 @@ export async function handleResumeQuiz(ws, data) {
     if (!ws.user) return;
 
     const session = await prisma.session.findUnique({ where: { id: sessionId } });
-    if (!session || session.hostId !== ws.user.id) return;
+    if (!session || String(session.hostId) !== String(ws.user.id)) return;
 
     await prisma.session.update({
       where: { id: sessionId },
@@ -81,7 +94,7 @@ export async function handleEndQuiz(ws, data) {
     if (!ws.user) return;
 
     const session = await prisma.session.findUnique({ where: { id: sessionId } });
-    if (!session || session.hostId !== ws.user.id) return;
+    if (!session || String(session.hostId) !== String(ws.user.id)) return;
 
     stopTimer(sessionId);
 

@@ -9,13 +9,22 @@ export function handleConnection(ws, req) {
     const token = url.searchParams.get("token");
     const user = verifyWsToken(token);
 
+    // Debug logging to help diagnose auth failures in dev
+    try {
+      const short = token ? String(token).slice(0, 16) + (String(token).length > 16 ? '...' : '') : '<no-token>';
+      console.log(`[ws] incoming connection token=${short}`);
+      console.log('[ws] verifyWsToken result:', user ? { id: user.id, email: user.email } : null);
+    } catch (e) { /* ignore logging errors */ }
+
     if (!user) {
+      console.warn('[ws] authentication failed for token prefix:', token ? String(token).slice(0,12) : '<none>');
       sendToOne(ws, { type: "error", data: { message: "Authentication failed" } });
-      ws.close(4001, "Unauthorized");
+      // include a reason when closing to help client debugging
+      ws.close(4001, "Unauthorized: token verification failed");
       return;
     }
 
-    ws.user = { id: user.id, email: user.email, name: user.name };
+    ws.user = { id: String(user.id), email: user.email, name: user.name };
     ws.sessionId = null;
 
     sendToOne(ws, { type: "connected", data: { message: "Welcome", userId: user.id } });
