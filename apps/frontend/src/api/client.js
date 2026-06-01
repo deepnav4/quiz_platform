@@ -1,20 +1,9 @@
-/** Normalize API root — must end with /api (no trailing slash after api). */
-function resolveApiBase() {
-  const raw =
-    import.meta.env.VITE_API_BASE ||
-    import.meta.env.VITE_API_URL ||
-    '';
-  if (!raw) {
-    return import.meta.env.DEV ? 'http://localhost:3000/api' : '';
-  }
-  const trimmed = raw.replace(/\/$/, '');
-  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
-}
+import { getApiBaseUrl } from '../config/urls.js';
 
-const API_BASE = resolveApiBase();
+const API_BASE = getApiBaseUrl();
 
 export function getApiBase() {
-  return API_BASE;
+  return getApiBaseUrl();
 }
 
 export async function apiRequest(endpoint, options = {}) {

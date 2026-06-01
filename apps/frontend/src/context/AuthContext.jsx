@@ -66,7 +66,10 @@ export function AuthProvider({ children }) {
       return { user: userData, token: authToken };
     }
 
-    throw new Error('Invalid email or password. Try demo@quizora.com / demo123');
+    const hint = import.meta.env.DEV
+      ? ' Start http-backend (port 3000) or use demo@quizora.com / demo123.'
+      : '';
+    throw new Error(`Invalid email or password.${hint}`);
   }
 
   async function signup(email, password, name) {
