@@ -18,11 +18,11 @@ const TESTIMONIALS = [
 ];
 
 const ENGAGEMENT_FEATURES = [
-  { icon: '📢', title: 'Get live feedback', desc: 'Collect instant reactions, ratings, and opinions from your entire audience with a single question.' },
-  { icon: '📊', title: 'Check knowledge', desc: 'Run quizzes and comprehension checks to ensure your key messages are landing.' },
-  { icon: '💡', title: 'Generate ideas', desc: 'Use the power of people and their unique perspectives for productive and efficient brainstorming sessions.' },
-  { icon: '🗳️', title: 'Make decisions', desc: 'Let the group weigh in on priorities and next steps with ranking and voting activities.' },
-  { icon: '🎯', title: 'Make it memorable', desc: 'Add gamified competitions and word clouds that make your events unforgettable.' },
+  { icon: '', title: 'Get live feedback', desc: 'Collect instant reactions, ratings, and opinions from your entire audience with a single question.' },
+  { icon: '', title: 'Check knowledge', desc: 'Run quizzes and comprehension checks to ensure your key messages are landing.' },
+  { icon: '', title: 'Generate ideas', desc: 'Use the power of people and their unique perspectives for productive and efficient brainstorming sessions.' },
+  { icon: '', title: 'Make decisions', desc: 'Let the group weigh in on priorities and next steps with ranking and voting activities.' },
+  { icon: '', title: 'Make it memorable', desc: 'Add gamified competitions and word clouds that make your events unforgettable.' },
 ];
 
 const EASY_CARDS = [
@@ -99,6 +99,7 @@ export default function HomePage() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [activeTab, setActiveTab] = useState('business');
   const [activeFeature, setActiveFeature] = useState(2);
+  const [isPlaying, setIsPlaying] = useState(true);
 
   /* Auto-rotate feature steps */
   useEffect(() => {
@@ -152,7 +153,7 @@ export default function HomePage() {
             </RevealSection>
             <RevealSection delay={200} className="mt-10 lg:mt-0">
               <img src="/Images/Group_1739329481.avif" alt="Quizora interactive platform" loading="eager"
-                className="rounded-2xl shadow-xl w-full transition-transform duration-700 ease-out hover:scale-[1.015]" />
+                className=" w-full " />
             </RevealSection>
           </div>
         </section>
@@ -206,45 +207,105 @@ export default function HomePage() {
         {/* ── Testimonials ── */}
         <section className="py-20 lg:py-28 bg-menti-surface">
           <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
-            <div className="lg:grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            <div className="grid grid-cols-[1fr_1fr] gap-12 lg:gap-16 items-stretch" style={{ minHeight: '400px' }}>
+
+              {/* LEFT — Photo */}
               <RevealSection>
-                <div className="relative overflow-hidden rounded-2xl" style={{ height: 'clamp(300px, 50vw, 500px)' }}>
+                <div className="relative overflow-hidden rounded-xl" style={{ height: 'clamp(350px, 35vw, 400px)' }}>
                   {TESTIMONIALS.map((item, i) => (
-                    <img key={i} src={item.img} alt={item.name}
-                      className={`absolute inset-0 w-full h-full object-cover rounded-2xl transition-all duration-700 ease-in-out ${i === activeSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`} loading="lazy" />
+                    <img
+                      key={i}
+                      src={item.img}
+                      alt={item.name}
+                      className={`absolute inset-0 w-full h-full object-cover object-top transition-all duration-700 ease-in-out ${
+                        i === activeSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
+                      }`}
+                      loading="lazy"
+                    />
                   ))}
                 </div>
               </RevealSection>
-              <RevealSection delay={150} className="mt-8 lg:mt-0">
-                <span className="font-hero text-5xl sm:text-6xl text-menti-coral leading-none select-none">{'\u275D'}</span>
-                <div className="relative min-h-[180px] mt-3">
-                  {TESTIMONIALS.map((item, i) => (
-                    <blockquote key={i} className={`absolute top-0 left-0 right-0 font-hero uppercase text-menti-text leading-tight transition-all duration-600 ease-in-out ${i === activeSlide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-                      style={{ fontSize: 'clamp(1.4rem, 3.5vw, 2.4rem)' }}>
-                      {item.quote}
-                    </blockquote>
-                  ))}
-                </div>
-                <cite className="not-italic block mt-6">
-                  <span className="font-body font-semibold text-menti-text block">{t.name}</span>
-                  <span className="font-body text-sm text-menti-text-weak">{t.role}</span>
-                </cite>
-                <div className="flex items-center gap-3 mt-8">
-                  {TESTIMONIALS.map((_, i) => (
-                    <button key={i} onClick={() => setActiveSlide(i)}
-                      className={`rounded-full transition-all duration-300 cursor-pointer ${i === activeSlide ? 'w-8 h-3 bg-menti-brand' : 'w-3 h-3 bg-menti-border hover:bg-menti-text-weaker'}`} />
-                  ))}
-                  <div className="flex gap-2 ml-3">
-                    {[-1, 1].map(dir => (
-                      <button key={dir} onClick={() => setActiveSlide(p => (p + dir + TESTIMONIALS.length) % TESTIMONIALS.length)}
-                        className="w-9 h-9 rounded-full border border-menti-border flex items-center justify-center text-menti-text hover:bg-menti-surface-sunken transition-colors duration-200 cursor-pointer">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points={dir < 0 ? "15 18 9 12 15 6" : "9 6 15 12 9 18"} />
-                        </svg>
-                      </button>
+
+              {/* RIGHT — Quote + attribution + controls */}
+              <RevealSection delay={150} className="flex flex-col justify-between" style={{ height: 'clamp(350px, 35vw, 400px)' }}>
+
+                {/* Top: opening quote mark + quote text */}
+                <div>
+                  <div className="text-menti-coral font-hero leading-none select-none mb-4"
+                      style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)' }}>
+                    {'\u275D'}
+                  </div>
+                  <div className="relative" style={{ minHeight: '160px' }}>
+                    {TESTIMONIALS.map((item, i) => (
+                      <blockquote
+                        key={i}
+                        className={`absolute top-0 left-0 right-0 font-hero uppercase text-menti-text leading-tight transition-all duration-600 ease-in-out ${
+                          i === activeSlide ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+                        }`}
+                        style={{ fontSize: 'clamp(1.3rem, 2.8vw, 2.1rem)' }}
+                      >
+                        {item.quote}
+                        <span className="text-menti-coral ml-1 align-baseline"
+                              style={{ fontSize: 'clamp(1rem, 2vw, 1.6rem)' }}>
+                          {'\u275E'}
+                        </span>
+                      </blockquote>
                     ))}
                   </div>
                 </div>
+
+                {/* Bottom: name/role left, controls right */}
+                <div className="flex items-end justify-between mt-10 gap-4">
+                  <cite className="not-italic">
+                    <span className="font-body font-semibold text-menti-text block text-base">
+                      {TESTIMONIALS[activeSlide].name}
+                    </span>
+                    <span className="font-body text-sm text-menti-text-weak mt-0.5 block">
+                      {TESTIMONIALS[activeSlide].role}
+                    </span>
+                  </cite>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => setIsPlaying(p => !p)}
+                      aria-label={isPlaying ? 'Pause' : 'Play'}
+                      className="w-10 h-10 rounded-full border border-menti-border flex items-center justify-center text-menti-text hover:bg-menti-surface-sunken transition-colors duration-200 cursor-pointer"
+                    >
+                      {isPlaying ? (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                          <rect x="5" y="3" width="5" height="18" rx="1.5"/>
+                          <rect x="14" y="3" width="5" height="18" rx="1.5"/>
+                        </svg>
+                      ) : (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                          <polygon points="5 3 19 12 5 21"/>
+                        </svg>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => setActiveSlide(p => (p - 1 + TESTIMONIALS.length) % TESTIMONIALS.length)}
+                      aria-label="Previous"
+                      className="w-10 h-10 rounded-full border border-menti-border flex items-center justify-center text-menti-text hover:bg-menti-surface-sunken transition-colors duration-200 cursor-pointer"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="15 18 9 12 15 6"/>
+                      </svg>
+                    </button>
+
+                    <button
+                      onClick={() => setActiveSlide(p => (p + 1) % TESTIMONIALS.length)}
+                      aria-label="Next"
+                      className="w-10 h-10 rounded-full border-2 border-menti-brand flex items-center justify-center text-menti-brand hover:bg-menti-surface-sunken transition-colors duration-200 cursor-pointer"
+                      style={{ boxShadow: '0 0 0 3px rgba(99,91,255,0.12)' }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="9 6 15 12 9 18"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
               </RevealSection>
             </div>
           </div>
