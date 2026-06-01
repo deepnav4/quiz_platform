@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { login as apiLogin, signup as apiSignup } from '../api/auth.js';
 
 const AuthContext = createContext(null);
 
@@ -47,18 +48,14 @@ export function AuthProvider({ children }) {
 
   async function login(email, password) {
     try {
-      const res = await fetch('http://localhost:3000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        persistAuth(data.user, data.token);
-        return data;
+      const data = await apiLogin(email, password);
+      persistAuth(data.user, data.token);
+      return data;
+    } catch (err) {
+      if (!import.meta.env.DEV) {
+        throw err instanceof Error ? err : new Error('Login failed');
       }
-    } catch {
-      /* Backend not available — use mock */
+      /* Local dev only — mock when backend is down */
     }
 
     const demo = DEMO_USERS[email];
@@ -74,18 +71,14 @@ export function AuthProvider({ children }) {
 
   async function signup(email, password, name) {
     try {
-      const res = await fetch('http://localhost:3000/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        persistAuth(data.user, data.token);
-        return data;
+      const data = await apiSignup(email, password, name);
+      persistAuth(data.user, data.token);
+      return data;
+    } catch (err) {
+      if (!import.meta.env.DEV) {
+        throw err instanceof Error ? err : new Error('Signup failed');
       }
-    } catch {
-      /* Backend not available — use mock */
+      /* Local dev only — mock when backend is down */
     }
 
     const userData = { id: 'user-' + Date.now(), name: name || 'New User', email };

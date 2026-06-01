@@ -1,4 +1,5 @@
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8080';
+const WS_URL =
+  import.meta.env.VITE_WS_URL || (import.meta.env.DEV ? 'ws://localhost:8080' : '');
 
 export function createSocket(token) {
   // Ensure token is safely encoded for URL usage
