@@ -6,7 +6,6 @@ import { onMessage } from '../api/socket.js';
 import { getSession } from '../api/session.js';
 import LiveLeaderboard from '../components/LiveLeaderboard.jsx';
 import HostVoteBars, { truncateQuestion } from '../components/HostVoteBars.jsx';
-import { useHostFullscreenPause } from '../hooks/useHostFullscreenPause.js';
 
 export default function HostControlPage() {
   const { sessionId } = useParams();
@@ -51,13 +50,6 @@ export default function HostControlPage() {
   const [votesByOption, setVotesByOption] = useState({});
   const [voteStats, setVoteStats] = useState(null);
   const [questionList, setQuestionList] = useState([]);
-
-  const quizActive = Boolean(currentQuestion && view === 'question');
-  const { pausedByFullscreen, requestFullscreen, isFullscreen } = useHostFullscreenPause({
-    sessionId,
-    sendMessage,
-    quizActive,
-  });
 
   useEffect(() => {
     document.documentElement.classList.add('overflow-hidden');
@@ -553,11 +545,10 @@ export default function HostControlPage() {
             )}
 
             <button
-              onClick={isPaused || pausedByFullscreen ? handleResume : handlePause}
-              disabled={pausedByFullscreen}
-              className="w-full py-3 rounded-full border border-menti-border font-body font-semibold text-sm text-menti-text-primary hover:bg-menti-surface-sunken transition-colors duration-200 cursor-pointer disabled:opacity-50"
+              onClick={isPaused ? handleResume : handlePause}
+              className="w-full py-3 rounded-full border border-menti-border font-body font-semibold text-sm text-menti-text-primary hover:bg-menti-surface-sunken transition-colors duration-200 cursor-pointer"
             >
-              {isPaused || pausedByFullscreen ? '▶ Resume' : '⏸ Pause'}
+              {isPaused ? '▶ Resume' : '⏸ Pause'}
             </button>
 
             <button onClick={handleEndQuiz}
@@ -573,32 +564,20 @@ export default function HostControlPage() {
 
       {/* Main stage — fixed viewport; inner vote list scrolls only if needed */}
       <main className="relative flex-1 min-w-0 h-full flex flex-col overflow-hidden bg-menti-bg">
-        {(isPaused || pausedByFullscreen) && currentQuestion && (
+        {isPaused && currentQuestion && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
             <div className="bg-menti-surface rounded-2xl shadow-xl px-8 py-6 text-center max-w-sm mx-4">
               <p className="font-heading text-lg font-semibold text-menti-text mb-1">Quiz paused</p>
               <p className="font-body text-sm text-menti-text-weak mb-4">
-                {pausedByFullscreen
-                  ? 'Fullscreen was exited. Return to fullscreen to resume automatically.'
-                  : 'Participants cannot answer until you resume.'}
+                Participants cannot answer until you resume.
               </p>
-              {pausedByFullscreen ? (
-                <button
-                  type="button"
-                  onClick={requestFullscreen}
-                  className="bg-menti-brand text-white rounded-full px-6 py-2.5 font-body text-sm font-semibold hover:bg-menti-brand-hover cursor-pointer"
-                >
-                  Enter fullscreen
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleResume}
-                  className="bg-menti-brand text-white rounded-full px-6 py-2.5 font-body text-sm font-semibold hover:bg-menti-brand-hover cursor-pointer"
-                >
-                  Resume quiz
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleResume}
+                className="bg-menti-brand text-white rounded-full px-6 py-2.5 font-body text-sm font-semibold hover:bg-menti-brand-hover cursor-pointer"
+              >
+                Resume quiz
+              </button>
             </div>
           </div>
         )}
@@ -615,13 +594,6 @@ export default function HostControlPage() {
               {session?.quiz?.title || 'Live session'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={requestFullscreen}
-            className="shrink-0 rounded-full border border-menti-border px-3 py-1.5 font-body text-xs font-semibold text-menti-text-primary hover:bg-menti-surface-sunken cursor-pointer"
-          >
-            {isFullscreen ? 'Fullscreen on' : 'Fullscreen'}
-          </button>
         </header>
 
         <div className="flex-1 min-h-0 overflow-hidden flex flex-col px-4 sm:px-6 py-4">
