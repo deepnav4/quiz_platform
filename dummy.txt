@@ -1,0 +1,297 @@
+╔═══════════════════════════════════════════════════════════════╗
+║             QUIZORA — Complete Setup & Run Guide              ║
+╚═══════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. PREREQUISITES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Node.js v18+ (v20 recommended)
+• PostgreSQL 14+ (running on localhost:5432)
+• npm (comes with Node.js)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. DATABASE SETUP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Step 1: Create a PostgreSQL database called "quizora"
+   
+   Open psql or pgAdmin and run:
+   > CREATE DATABASE quizora;
+
+   (Or via command line:)
+   > psql -U postgres -c "CREATE DATABASE quizora;"
+
+Step 2: Verify the database connection string in packages/db/.env
+
+   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/quizora"
+   
+   ⚠️  Change "postgres:postgres" to your actual PostgreSQL username:password
+       if they differ from the defaults.
+
+Step 3: Generate the Prisma client
+
+   cd packages/db
+   npx prisma generate
+
+Step 4: Run database migrations
+
+   cd packages/db
+   npx prisma migrate dev
+
+   (This creates all tables in the quizora database)
+
+Step 5 (Optional): Seed the database with sample data
+
+   cd apps/http-backend
+   node seed.js
+
+   This creates:
+   - 1 creator user (creator@quizapp.com)
+   - 3 participant users (alice, bob, charlie)
+   - 1 quiz "JavaScript Fundamentals" with 5 questions
+   - 1 completed session with responses
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. ENVIRONMENT FILES (already created for you)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+packages/db/.env:
+   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/quizora"
+
+apps/http-backend/.env:
+   PORT=3000
+   JWT_SECRET=quizora-dev-secret-key-2024
+   JWT_EXPIRES_IN=7d
+
+apps/ws-backend/.env:
+   WS_PORT=8080
+   JWT_SECRET=quizora-dev-secret-key-2024
+
+apps/frontend/.env:
+   VITE_API_BASE=http://localhost:3000/api
+   VITE_WS_URL=ws://localhost:8080
+
+⚠️  IMPORTANT: JWT_SECRET MUST be the same in both http-backend and ws-backend!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. INSTALL DEPENDENCIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+From the ROOT of the project (quiz_platform/):
+
+   npm install
+
+This installs dependencies for all workspaces (frontend, http-backend, ws-backend, db).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. STARTING THE PROJECT (3 terminals needed)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+You need 3 separate terminal windows:
+
+TERMINAL 1 — HTTP Backend (REST API):
+   cd apps/http-backend
+   node index.js
+   → Runs on http://localhost:3000
+
+TERMINAL 2 — WebSocket Backend (Real-time):
+   cd apps/ws-backend
+   node index.js
+   → Runs on ws://localhost:8080
+
+TERMINAL 3 — Frontend (Vite dev server):
+   cd apps/frontend
+   npm run dev
+   → Runs on http://localhost:5173
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. DUMMY CREDENTIALS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+▸ MOCK MODE (no backend needed — works offline):
+  ┌───────────────────────────────────────────────┐
+  │  Email:    demo@quizora.com                   │
+  │  Password: demo123                            │
+  ├───────────────────────────────────────────────┤
+  │  Email:    admin@quizora.com                  │
+  │  Password: admin123                           │
+  └───────────────────────────────────────────────┘
+
+▸ WITH BACKEND (after running seed.js):
+  ┌───────────────────────────────────────────────┐
+  │  Email:    creator@quizapp.com                │
+  │  Password: password123                        │
+  │  Role:     Quiz Creator / Host                │
+  ├───────────────────────────────────────────────┤
+  │  Email:    alice@example.com                  │
+  │  Password: password123                        │
+  │  Role:     Participant                        │
+  ├───────────────────────────────────────────────┤
+  │  Email:    bob@example.com                    │
+  │  Password: password123                        │
+  │  Role:     Participant                        │
+  ├───────────────────────────────────────────────┤
+  │  Email:    charlie@example.com                │
+  │  Password: password123                        │
+  │  Role:     Participant                        │
+  └───────────────────────────────────────────────┘
+
+▸ SIGN UP (create your own account):
+  - Go to http://localhost:5173/signup
+  - Enter any email, name, and password (min 6 chars)
+  - This creates a real account in the database
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. COMPLETE HOST FLOW (Step-by-Step Simulation)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1: LOGIN AS HOST
+   - Open http://localhost:5173/login
+   - Login with creator@quizapp.com / password123
+   - You'll be redirected to the Dashboard
+
+STEP 2: CREATE A QUIZ
+   - Click "Create Quiz" button
+   - Enter title: "My First Live Quiz"
+   - Enter description: "A demo quiz"
+   - Click "Create"
+   - You'll be redirected to the Edit Quiz page
+
+STEP 3: ADD QUESTIONS
+   - Click "+ Add Question"
+   - Select type: MULTIPLE_CHOICE
+   - Enter question: "What is 2 + 2?"
+   - Fill options: "3", "4", "5", "6"
+   - Select correct answer (option 2 = "4")
+   - Set time limit and points
+   - Click "Add Question"
+   - Repeat for more questions (at least 2-3 recommended)
+
+STEP 4: START A LIVE SESSION
+   - Click "Start Live Session" on the Edit Quiz page
+   - You'll be taken to the Waiting Room
+   - An 8-digit join code will be displayed (e.g., "43829156")
+   - Share this code with participants!
+
+STEP 5: WAIT FOR PARTICIPANTS
+   - Keep the Waiting Room open
+   - You'll see participants appear in real-time as they join
+   - Once enough people have joined, click "Start Quiz"
+
+STEP 6: CONTROL THE QUIZ
+   - After starting, you'll see the Host Control page
+   - Click "Next Question" to send the first question to all participants
+   - Watch the response count increase in real-time
+   - View response distribution charts
+   - Click "Show Results" to see per-question analytics
+   - Click "Show Leaderboard" to see live rankings
+   - Click "Next Question" to advance
+   - Click "Pause" to pause the quiz
+   - Click "End Quiz" when done
+
+STEP 7: VIEW RESULTS
+   - After ending, you'll be redirected to the Results page
+   - Click "View Leaderboard" to see final standings
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. COMPLETE PARTICIPANT FLOW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1: OPEN AN INCOGNITO/DIFFERENT BROWSER WINDOW
+   (So you can be logged in as a different user)
+
+STEP 2: SIGN UP OR LOGIN
+   - Go to http://localhost:5173/signup
+   - Create a new account OR login as alice@example.com / password123
+
+STEP 3: JOIN THE QUIZ
+   - Go to http://localhost:5173/join
+   - Enter the 8-digit join code from the host's Waiting Room
+   - Click "Join Quiz"
+   - You'll be taken to the Waiting Room
+
+STEP 4: WAIT FOR HOST TO START
+   - You'll see the "Waiting for host to start..." screen
+   - When the host clicks "Start Quiz", you'll automatically be
+     redirected to the Live Quiz page
+
+STEP 5: ANSWER QUESTIONS
+   - Questions appear one at a time (sent by the host)
+   - Select your answer and click "Submit Answer"
+   - You'll see if you were correct and points earned
+   - Wait for the host to advance to the next question
+
+STEP 6: VIEW YOUR RESULTS
+   - After the host ends the quiz, you'll be redirected to Results
+   - See your performance breakdown
+   - View the Leaderboard for final rankings
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9. REAL-TIME SIMULATION (Testing with 2 browser windows)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Best way to test real-time features:
+
+1. Open Chrome normally → Login as HOST (creator@quizapp.com)
+2. Open Chrome Incognito → Login as PARTICIPANT (alice@example.com)
+   (Or use a different browser entirely: Firefox, Edge, etc.)
+
+3. HOST:   Dashboard → Create Quiz → Add Questions → Start Session
+4. PARTIC: Go to /join → Enter the join code → Join
+5. HOST:   See participant appear in Waiting Room → Click "Start"
+6. PARTIC: Auto-redirected to Live Quiz → See "Waiting for host..."
+7. HOST:   Click "Next Question" → Question appears for participant
+8. PARTIC: Answer the question → Submit
+9. HOST:   See response count update in real-time
+10. HOST:  Click "Next Question" → Repeat
+11. HOST:  Click "End Quiz" → Both see results
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+10. PROJECT ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+quiz_platform/             (Turborepo monorepo)
+├── packages/db/           (Prisma ORM + PostgreSQL)
+│   ├── schema.prisma      (10 database models)
+│   └── index.js           (PrismaClient singleton)
+├── apps/
+│   ├── http-backend/      (Express REST API, port 3000)
+│   │   ├── routes/        (auth, quiz, question, session, result)
+│   │   └── controllers/   (business logic)
+│   ├── ws-backend/        (WebSocket server, port 8080)
+│   │   └── handlers/      (session, question, host, leaderboard)
+│   └── frontend/          (Vite + React + Tailwind CSS v4)
+│       └── src/
+│           ├── api/       (API client + WS helpers)
+│           ├── context/   (Auth + Socket providers)
+│           └── pages/     (12 page components)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+11. TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: "Cannot find module '@repo/db'"
+A: Run `npm install` from the root directory, then run
+   `npx prisma generate` inside packages/db/
+
+Q: "Login returns 401 Invalid email or password"
+A: The seeded users use fake bcrypt hashes. Use password "password123"
+   for all seeded accounts. Or sign up a new account.
+
+Q: "WebSocket connection failed"
+A: Make sure the WS backend is running (Terminal 2).
+   Check that JWT_SECRET matches between http-backend and ws-backend .env files.
+
+Q: "Database connection failed"
+A: Verify PostgreSQL is running. Check DATABASE_URL in packages/db/.env.
+   Make sure the "quizora" database exists.
+
+Q: "CORS error in browser console"
+A: The backend uses cors() with no restrictions, so this shouldn't happen.
+   If it does, check that the backend is actually running on port 3000.
+
+Q: "Questions I added aren't showing up"
+A: Make sure the HTTP backend is running. The quiz editor now saves
+   questions to the backend via API. Without the backend, questions
+   only exist in mock/local state.

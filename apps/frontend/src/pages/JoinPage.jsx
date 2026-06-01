@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { joinSession } from '../api/session.js';
 
 export default function JoinPage() {
   const navigate = useNavigate();
@@ -15,8 +16,12 @@ export default function JoinPage() {
     setError('');
     setLoading(true);
     try {
-      // Navigate to waiting room with the code — the WS connection handles joining
-      navigate(`/session/${joinCode}/waiting`);
+      const data = await joinSession(joinCode);
+      const sessionId = data.session?.id || data.id;
+      if (!sessionId) {
+        throw new Error('Invalid session. Please check the code and try again.');
+      }
+      navigate(`/session/${sessionId}/waiting`);
     } catch (err) {
       setError(err.message || 'Could not join. Check the code and try again.');
       setLoading(false);

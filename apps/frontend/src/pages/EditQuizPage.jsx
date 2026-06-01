@@ -3,8 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getQuiz, updateQuiz } from '../api/quiz.js';
 import { createSession } from '../api/session.js';
+import { createQuestion, deleteQuestion } from '../api/question.js';
 
 const QUESTION_TYPES = ['MULTIPLE_CHOICE', 'TRUE_FALSE', 'OPEN_ENDED'];
+
+/* Map frontend display types → backend questionType values */
+const TYPE_MAP = {
+  MULTIPLE_CHOICE: 'MULTIPLE_CHOICE_SINGLE',
+  TRUE_FALSE: 'TRUE_FALSE',
+  OPEN_ENDED: 'OPEN_ENDED',
+};
 
 export default function EditQuizPage() {
   const { quizId } = useParams();
@@ -18,6 +26,7 @@ export default function EditQuizPage() {
   const [editingTitle, setEditingTitle] = useState('');
   const [editingDesc, setEditingDesc] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   /* New question form state */
   const [newQ, setNewQ] = useState({ text: '', type: 'MULTIPLE_CHOICE', options: ['', ''], correctIndex: 0, timeLimit: 30, points: 10 });
@@ -26,19 +35,23 @@ export default function EditQuizPage() {
     if (!authLoading && !user) navigate('/login');
   }, [user, authLoading, navigate]);
 
+  const fetchQuiz = async () => {
+    try {
+      const data = await getQuiz(quizId);
+      const q = data.quiz || data;
+      setQuiz(q);
+      setEditingTitle(q.title || '');
+      setEditingDesc(q.description || '');
+      setQuestions(q.questions || []);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   useEffect(() => {
     if (!user || !quizId) return;
     setLoading(true);
-    getQuiz(quizId)
-      .then(data => {
-        const q = data.quiz || data;
-        setQuiz(q);
-        setEditingTitle(q.title || '');
-        setEditingDesc(q.description || '');
-        setQuestions(q.questions || []);
-      })
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
+    fetchQuiz().finally(() => setLoading(false));
   }, [user, quizId]);
 
   const handleSaveDetails = async () => {
@@ -48,24 +61,62 @@ export default function EditQuizPage() {
     } catch (err) { setError(err.message); }
   };
 
-  const handleAddQuestion = () => {
+  const handleAddQuestion = async () => {
     if (!newQ.text.trim()) return;
-    const question = {
-      id: Date.now().toString(),
+    setError('');
+    setSaving(true);
+
+    /* Build options array based on question type */
+    let options;
+    const backendType = TYPE_MAP[newQ.type] || newQ.type;
+
+    if (newQ.type === 'TRUE_FALSE') {
+      options = [
+        { text: 'True', isCorrect: newQ.correctIndex === 0, imageUrl: null },
+        { text: 'False', isCorrect: newQ.correctIndex === 1, imageUrl: null },
+      ];
+    } else if (newQ.type === 'MULTIPLE_CHOICE') {
+      options = newQ.options
+        .filter(o => o.trim())
+        .map((text, i) => ({ text, isCorrect: i === newQ.correctIndex, imageUrl: null }));
+    }
+    // OPEN_ENDED → no options
+
+    const payload = {
+      questionType: backendType,
       text: newQ.text,
-      type: newQ.type,
-      options: newQ.type === 'OPEN_ENDED' ? [] : newQ.options.filter(o => o.trim()),
-      correctOptionIndex: newQ.correctIndex,
-      timeLimit: newQ.timeLimit,
+      difficulty: 'MEDIUM',
+      hasTimeLimit: true,
+      timeLimitSeconds: newQ.timeLimit,
       points: newQ.points,
+      ...(options ? { options } : {}),
     };
-    setQuestions(prev => [...prev, question]);
-    setNewQ({ text: '', type: 'MULTIPLE_CHOICE', options: ['', ''], correctIndex: 0, timeLimit: 30, points: 10 });
-    setShowAddForm(false);
+
+    try {
+      await createQuestion(quizId, payload);
+      /* Refetch quiz so we get the real backend ID for the new question */
+      await fetchQuiz();
+      setNewQ({ text: '', type: 'MULTIPLE_CHOICE', options: ['', ''], correctIndex: 0, timeLimit: 30, points: 10 });
+      setShowAddForm(false);
+    } catch (err) {
+      setError(err.message || 'Failed to add question');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDeleteQuestion = (id) => {
-    setQuestions(prev => prev.filter(q => q.id !== id));
+  const handleDeleteQuestion = async (id) => {
+    setError('');
+    try {
+      /* Only call backend delete if the ID looks like a real backend ID (not a temp Date.now() one) */
+      const isTemp = /^\d{13,}$/.test(String(id));
+      if (!isTemp) {
+        await deleteQuestion(quizId, id);
+      }
+      setQuestions(prev => prev.filter(q => q.id !== id));
+    } catch (err) {
+      setError(err.message || 'Failed to delete question');
+    }
   };
 
   const handleStartSession = async () => {
@@ -125,22 +176,26 @@ export default function EditQuizPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-2">
                 <h3 className="font-body font-semibold text-base text-menti-text">{q.text}</h3>
-                <span className="rounded-full px-3 py-0.5 text-xs bg-menti-brand-weakest text-menti-brand font-body font-semibold">{q.type?.replace('_', ' ')}</span>
+                <span className="rounded-full px-3 py-0.5 text-xs bg-menti-brand-weakest text-menti-brand font-body font-semibold">{(q.type || q.questionType)?.replace('_', ' ')}</span>
               </div>
               {q.options && q.options.length > 0 && (
                 <ul className="mt-3 flex flex-col gap-1.5">
-                  {q.options.map((opt, oi) => (
-                    <li key={oi} className={`flex items-center gap-2 py-2 px-3 rounded-lg text-sm font-body ${oi === q.correctOptionIndex ? 'bg-green-50 border border-menti-positive/30 text-menti-positive font-semibold' : 'bg-menti-surface-sunken text-menti-text-primary'}`}>
-                      <span className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${oi === q.correctOptionIndex ? 'border-menti-positive bg-menti-positive' : 'border-menti-border'}`}>
-                        {oi === q.correctOptionIndex && <svg viewBox="0 0 16 16" fill="white" className="w-full h-full p-0.5"><polyline points="3 8 6.5 11.5 13 5" fill="none" stroke="white" strokeWidth="2"/></svg>}
-                      </span>
-                      {typeof opt === 'string' ? opt : opt.text || `Option ${oi + 1}`}
-                    </li>
-                  ))}
+                  {q.options.map((opt, oi) => {
+                    const optText = typeof opt === 'string' ? opt : opt.text || `Option ${oi + 1}`;
+                    const isCorrect = typeof opt === 'object' ? opt.isCorrect : oi === q.correctOptionIndex;
+                    return (
+                      <li key={oi} className={`flex items-center gap-2 py-2 px-3 rounded-lg text-sm font-body ${isCorrect ? 'bg-green-50 border border-menti-positive/30 text-menti-positive font-semibold' : 'bg-menti-surface-sunken text-menti-text-primary'}`}>
+                        <span className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${isCorrect ? 'border-menti-positive bg-menti-positive' : 'border-menti-border'}`}>
+                          {isCorrect && <svg viewBox="0 0 16 16" fill="white" className="w-full h-full p-0.5"><polyline points="3 8 6.5 11.5 13 5" fill="none" stroke="white" strokeWidth="2"/></svg>}
+                        </span>
+                        {optText}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
               <div className="flex gap-3 mt-3">
-                <span className="text-xs text-menti-text-weaker font-body">⏱ {q.timeLimit || 30}s</span>
+                <span className="text-xs text-menti-text-weaker font-body">⏱ {q.timeLimitSeconds || q.timeLimit || 30}s</span>
                 <span className="text-xs text-menti-text-weaker font-body">⭐ {q.points || 10} pts</span>
               </div>
             </div>
@@ -189,6 +244,20 @@ export default function EditQuizPage() {
               </div>
             )}
 
+            {newQ.type === 'TRUE_FALSE' && (
+              <div>
+                <label className="font-body font-semibold text-sm text-menti-text-primary block mb-2">Correct Answer</label>
+                <div className="flex gap-3">
+                  {['True', 'False'].map((label, i) => (
+                    <button key={label} type="button" onClick={() => setNewQ(p => ({ ...p, correctIndex: i }))}
+                      className={`flex-1 py-2.5 rounded-xl border-2 font-body font-semibold text-sm transition-colors duration-200 cursor-pointer ${i === newQ.correctIndex ? 'border-menti-positive bg-green-50 text-menti-positive' : 'border-menti-border-weak text-menti-text-primary hover:border-menti-brand'}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-4">
               <div className="flex-1">
                 <label className="font-body font-semibold text-xs text-menti-text-weak block mb-1">Time (sec)</label>
@@ -203,8 +272,10 @@ export default function EditQuizPage() {
             <div className="flex gap-3 mt-2">
               <button type="button" onClick={() => setShowAddForm(false)}
                 className="flex-1 py-2.5 rounded-full border border-menti-border font-body font-semibold text-sm text-menti-text-primary hover:bg-menti-surface-sunken transition-colors duration-200 cursor-pointer">Cancel</button>
-              <button type="button" onClick={handleAddQuestion}
-                className="flex-1 py-2.5 rounded-full bg-menti-brand text-white font-body font-semibold text-sm hover:bg-menti-brand-hover transition-colors duration-200 cursor-pointer">Add Question</button>
+              <button type="button" onClick={handleAddQuestion} disabled={saving}
+                className="flex-1 py-2.5 rounded-full bg-menti-brand text-white font-body font-semibold text-sm hover:bg-menti-brand-hover transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                {saving ? 'Adding...' : 'Add Question'}
+              </button>
             </div>
           </div>
         </div>
