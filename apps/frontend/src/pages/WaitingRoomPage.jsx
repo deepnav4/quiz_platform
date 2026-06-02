@@ -19,6 +19,7 @@ export default function WaitingRoomPage() {
   const [error, setError] = useState(null);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState(null);
+  const [hostId, setHostId] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,15 +32,18 @@ export default function WaitingRoomPage() {
         setJoinCode(session.joinCode || sessionId);
         setQuizTitle(session.quiz?.title || '');
 
-        const hostId = session.hostId || session.host?.id;
-        setIsHost(Boolean(user?.id && hostId && String(user.id) === String(hostId)));
+        const sessionHostId = session.hostId || session.host?.id;
+        setHostId(sessionHostId);
+        setIsHost(Boolean(user?.id && sessionHostId && String(user.id) === String(sessionHostId)));
 
         if (session.participants?.length) {
           setParticipants(
-            session.participants.map((p) => ({
-              id: p.user?.id || p.id,
-              name: p.user?.name || p.name || 'Anonymous',
-            }))
+            session.participants
+              .filter((p) => String(p.userId || p.user?.id) !== String(sessionHostId))
+              .map((p) => ({
+                id: p.user?.id || p.userId || p.id,
+                name: p.user?.name || p.name || 'Anonymous',
+              }))
           );
         }
       } catch (err) {
@@ -68,7 +72,9 @@ export default function WaitingRoomPage() {
     const cleanup = onMessage(socket, (msg) => {
       switch (msg.type) {
         case 'participant_joined': {
-          const { userId, name } = msg.data || {};
+          const { userId, name, hostId: evtHostId } = msg.data || {};
+          if (evtHostId && userId && String(userId) === String(evtHostId)) break;
+          if (hostId && userId && String(userId) === String(hostId)) break;
           setParticipants((prev) => {
             if (prev.some((p) => String(p.id) === String(userId))) return prev;
             return [...prev, { id: userId, name: name || 'Anonymous' }];
@@ -77,7 +83,9 @@ export default function WaitingRoomPage() {
         }
 
         case 'participant_left': {
-          const { userId } = msg.data || {};
+          const { userId, hostId: evtHostId } = msg.data || {};
+          if (evtHostId && userId && String(userId) === String(evtHostId)) break;
+          if (hostId && userId && String(userId) === String(hostId)) break;
           setParticipants((prev) => prev.filter((p) => String(p.id) !== String(userId)));
           break;
         }
@@ -106,7 +114,7 @@ export default function WaitingRoomPage() {
     });
 
     return cleanup;
-  }, [socket, sessionId, isHost, navigate]);
+  }, [socket, sessionId, isHost, navigate, hostId]);
 
   const canStart = isHost && participants.length >= 1 && connected && !wsError?.isAuthError;
 

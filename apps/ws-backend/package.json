@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node index.js",
     "seed": "node seed.js",
-    "seed:computer-networks": "node seed-computer-networks.js"
+    "seed:computer-networks": "node seed-computer-networks.js",
+    "purge:host-participants": "node scripts/purge-host-participants.js"
   },
   "keywords": [],
   "author": "",

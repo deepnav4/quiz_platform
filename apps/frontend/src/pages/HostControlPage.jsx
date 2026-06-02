@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 import { useSocket } from '../context/SocketContext.jsx';
 import { onMessage } from '../api/socket.js';
 import { getSession } from '../api/session.js';
@@ -9,7 +10,9 @@ import HostVoteBars from '../components/HostVoteBars.jsx';
 export default function HostControlPage() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { socket, sendMessage, connected } = useSocket();
+  const hostIdRef = useRef(null);
 
   // Session state
   const [session, setSession] = useState(null);
@@ -55,6 +58,7 @@ export default function HostControlPage() {
         const res = await getSession(sessionId);
         if (!cancelled) {
           setSession(res.session);
+          hostIdRef.current = res.session.hostId || res.session.host?.id;
           const nonHost =
             res.session.participants?.filter(
               (p) => String(p.userId) !== String(res.session.hostId)
@@ -84,6 +88,10 @@ export default function HostControlPage() {
   useEffect(() => {
     const cleanup = onMessage(socket, (msg) => {
       const { type, data } = msg;
+      const hostId = hostIdRef.current;
+      const isHostEvent =
+        !data?.hostId || !hostId || String(data.hostId) === String(hostId);
+      const isMeHost = hostId && user?.id && String(hostId) === String(user.id);
 
       switch (type) {
         case 'question_started': {
@@ -107,13 +115,16 @@ export default function HostControlPage() {
           break;
         }
 
-        case 'response_count': {
+        case 'response_count':
+        case 'host_response_count': {
+          if (!isHostEvent || !isMeHost) break;
           setResponseCount(data.count ?? 0);
           if (data.total != null) setParticipantCount(data.total);
           break;
         }
 
         case 'host_participant_voted': {
+          if (!isHostEvent || !isMeHost) break;
           const { userId, name, optionIds } = data || {};
           if (!optionIds?.length) break;
           setVotesByOption((prev) => {
@@ -130,14 +141,24 @@ export default function HostControlPage() {
           break;
         }
 
-        case 'vote_stats': {
+        case 'vote_stats':
+        case 'host_vote_stats': {
+          if (!isHostEvent || !isMeHost) break;
           setVoteStats(data);
           if (data?.options) {
-            const byOpt = {};
-            for (const o of data.options) {
-              byOpt[o.id] = o.voters || [];
-            }
-            setVotesByOption((prev) => ({ ...byOpt, ...prev, ...byOpt }));
+            setVotesByOption((prev) => {
+              const merged = { ...prev };
+              for (const o of data.options) {
+                const existing = merged[o.id] || [];
+                const ids = new Set(existing.map((v) => String(v.userId)));
+                const combined = [...existing];
+                for (const v of o.voters || []) {
+                  if (!ids.has(String(v.userId))) combined.push(v);
+                }
+                merged[o.id] = combined;
+              }
+              return merged;
+            });
           }
           if (data?.revealCorrect) setTimeUp(true);
           break;
@@ -148,7 +169,9 @@ export default function HostControlPage() {
           break;
         }
 
-        case 'time_up': {
+        case 'time_up':
+        case 'host_time_up': {
+          if (type === 'host_time_up' && (!isHostEvent || !isMeHost)) break;
           setTimeUp(true);
           setTimeLeft(0);
           clearInterval(timerRef.current);
@@ -156,12 +179,22 @@ export default function HostControlPage() {
         }
 
         case 'participant_joined': {
-          setParticipantCount((prev) => prev + 1);
+          if (data?.userId && hostId && String(data.userId) === String(hostId)) break;
+          if (data?.participantCount != null) {
+            setParticipantCount(data.participantCount);
+          } else {
+            setParticipantCount((prev) => prev + 1);
+          }
           break;
         }
 
         case 'participant_left': {
-          setParticipantCount((prev) => Math.max(0, prev - 1));
+          if (data?.userId && hostId && String(data.userId) === String(hostId)) break;
+          if (data?.participantCount != null) {
+            setParticipantCount(data.participantCount);
+          } else {
+            setParticipantCount((prev) => Math.max(0, prev - 1));
+          }
           break;
         }
 
@@ -188,7 +221,7 @@ export default function HostControlPage() {
     });
 
     return cleanup;
-  }, [socket, sessionId, navigate]);
+  }, [socket, sessionId, navigate, user?.id]);
 
   // ---------- Local countdown timer ----------
   useEffect(() => {
@@ -250,6 +283,25 @@ export default function HostControlPage() {
       currentQuestion.questionType
     );
 
+  const barOptions = useMemo(() => {
+    if (!currentQuestion?.options?.length) return [];
+    if (voteStats?.options?.length) {
+      return voteStats.options.map((o) => ({
+        ...o,
+        voters: votesByOption[o.id] || o.voters || [],
+      }));
+    }
+    return currentQuestion.options.map((o) => {
+      const count = (votesByOption[o.id] || []).length;
+      return {
+        ...o,
+        count,
+        percent: responseCount > 0 ? Math.round((count / responseCount) * 100) : 0,
+        voters: votesByOption[o.id] || [],
+      };
+    });
+  }, [currentQuestion, voteStats, votesByOption, responseCount]);
+
   const handleBackToQuestion = useCallback(() => {
     setView('question');
   }, []);
@@ -296,6 +348,16 @@ export default function HostControlPage() {
     const entries = Object.entries(questionResult.optionCounts);
     const total = questionResult.totalResponses || entries.reduce((sum, [, v]) => sum + v.count, 0);
 
+    // Build options array compatible with HostVoteBars
+    const resultBarOptions = entries.map(([optionId, opt], i) => ({
+      id: optionId,
+      text: opt.text,
+      count: opt.count,
+      isCorrect: opt.isCorrect,
+      percent: total > 0 ? Math.round((opt.count / total) * 100) : 0,
+      voters: votesByOption[optionId] || opt.voters || [],
+    }));
+
     return (
       <div className="bg-menti-surface rounded-2xl p-6 border border-menti-border-weak">
         <h3 className="font-heading font-semibold text-base text-menti-text mb-4">Response Distribution</h3>
@@ -317,24 +379,12 @@ export default function HostControlPage() {
             <p className="font-body text-xs text-menti-text-weak mt-1">Participants</p>
           </div>
         </div>
-        {entries.map(([optionId, opt]) => {
-          const pct = total > 0 ? Math.round((opt.count / total) * 100) : 0;
-          return (
-            <div key={optionId} className="mb-3">
-              <div className="flex justify-between mb-1">
-                <span className={`font-body text-sm ${opt.isCorrect ? 'font-semibold text-menti-positive' : 'text-menti-text-primary'}`}>
-                  {opt.isCorrect && '✓ '}{opt.text}
-                </span>
-                <span className="font-body text-sm text-menti-text-weak">{pct}%</span>
-              </div>
-              <div className="h-7 bg-menti-surface-sunken rounded-full overflow-hidden">
-                <div className={`h-full rounded-full transition-all duration-700 ease-out ${opt.isCorrect ? 'bg-menti-brand' : 'bg-menti-border'}`}
-                  style={{ width: `${pct}%` }} />
-              </div>
-              {opt.voters?.length > 0 && <OptionVoteChips voters={opt.voters} />}
-            </div>
-          );
-        })}
+        <HostVoteBars
+          options={resultBarOptions}
+          totalVotes={total}
+          revealed={true}
+          votesByOption={votesByOption}
+        />
       </div>
     );
   };
@@ -525,7 +575,7 @@ export default function HostControlPage() {
                   </div>
 
                   {timeUp && (
-                    <div className="mb-6 rounded-2xl bg-menti-brand-weakest border border-menti-brand-weak px-4 py-3 text-center animate-fade-in-up">
+                    <div className="mb-6 rounded-2xl bg-menti-brand-weakest border border-menti-brand-weakest px-4 py-3 text-center animate-fade-in-up">
                       <p className="font-body text-sm font-semibold text-menti-brand">
                         Time&apos;s up — correct answers are highlighted below
                       </p>
@@ -545,14 +595,7 @@ export default function HostControlPage() {
                         {!timeUp && ' · correct answer hidden until time is up'}
                       </p>
                       <HostVoteBars
-                        options={voteStats?.options || currentQuestion.options.map((o) => ({
-                          ...o,
-                          count: (votesByOption[o.id] || []).length,
-                          percent: participantCount
-                            ? Math.round(((votesByOption[o.id] || []).length / participantCount) * 100)
-                            : 0,
-                          voters: votesByOption[o.id] || [],
-                        }))}
+                        options={barOptions}
                         totalVotes={voteStats?.totalVotes ?? responseCount}
                         revealed={timeUp}
                         votesByOption={votesByOption}

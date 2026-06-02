@@ -1,17 +1,7 @@
 import { addToRoom, removeFromRoom } from "../utils/rooms.js";
 import { broadcastToRoom, sendToOne } from "../utils/broadcast.js";
-import { isSessionHost } from "../utils/sessionHelpers.js";
+import { isSessionHost, countActiveParticipants, purgeHostParticipant } from "../utils/sessionHelpers.js";
 import prisma from "@repo/db";
-
-async function countActiveParticipants(sessionId, hostId) {
-  return prisma.sessionParticipant.count({
-    where: {
-      sessionId,
-      isActive: true,
-      userId: hostId ? { not: hostId } : undefined,
-    },
-  });
-}
 
 export async function handleJoinSession(ws, data) {
   try {
@@ -32,9 +22,10 @@ export async function handleJoinSession(ws, data) {
     const asHost = isSessionHost(session, ws.user.id);
 
     if (asHost) {
+      const participantCount = await purgeHostParticipant(sessionId, session.hostId);
       sendToOne(ws, {
         type: "session_joined",
-        data: { sessionId, role: "host", participantCount: await countActiveParticipants(sessionId, session.hostId) },
+        data: { sessionId, role: "host", hostId: session.hostId, participantCount },
       });
       return;
     }
@@ -53,7 +44,12 @@ export async function handleJoinSession(ws, data) {
 
     broadcastToRoom(sessionId, {
       type: "participant_joined",
-      data: { userId: ws.user.id, name: ws.user.name, participantCount: count },
+      data: {
+        userId: ws.user.id,
+        name: ws.user.name,
+        participantCount: count,
+        hostId: session.hostId,
+      },
     });
 
     sendToOne(ws, {
@@ -88,7 +84,7 @@ export async function handleLeaveSession(ws, data) {
 
       broadcastToRoom(sessionId, {
         type: "participant_left",
-        data: { userId: ws.user.id, participantCount: count },
+        data: { userId: ws.user.id, participantCount: count, hostId: session.hostId },
       });
     }
 

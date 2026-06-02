@@ -1,4 +1,4 @@
-import { broadcastToRoom, sendToOne, sendToHost } from "../utils/broadcast.js";
+import { broadcastToRoom, sendToOne } from "../utils/broadcast.js";
 import { startTimer, stopTimer } from "../utils/timer.js";
 import { isSessionHost } from "../utils/sessionHelpers.js";
 import { buildVoteStats } from "../utils/voteStats.js";
@@ -8,7 +8,10 @@ import prisma from "@repo/db";
 async function pushHostVoteStats(sessionId, hostId, questionId, revealCorrect = false) {
   const stats = await buildVoteStats(sessionId, questionId, hostId, revealCorrect);
   if (stats) {
-    sendToHost(sessionId, hostId, { type: "vote_stats", data: stats });
+    broadcastToRoom(sessionId, {
+      type: "host_vote_stats",
+      data: { ...stats, hostId },
+    });
   }
 }
 
@@ -81,8 +84,11 @@ export async function handleNextQuestion(ws, data) {
         timeLimitSeconds: question.timeLimitSeconds,
         questionIndex: currentIndex,
         totalQuestions: questions.length,
+        hostId: session.hostId,
       },
     });
+
+    await pushHostVoteStats(sessionId, session.hostId, question.id, false);
 
     if (question.hasTimeLimit && question.timeLimitSeconds) {
       startTimer(sessionId, question.timeLimitSeconds * 1000, async () => {
@@ -179,10 +185,10 @@ export async function handleSubmitResponse(ws, data) {
       data: { questionId, locked: true },
     });
 
-    // Host-only: who voted + bar stats (no correct answers yet)
-    sendToHost(sessionId, session.hostId, {
+    broadcastToRoom(sessionId, {
       type: "host_participant_voted",
       data: {
+        hostId: session.hostId,
         questionId,
         userId: ws.user.id,
         name: ws.user.name,
@@ -200,9 +206,9 @@ export async function handleSubmitResponse(ws, data) {
       where: { sessionId, isActive: true, userId: { not: session.hostId } },
     });
 
-    sendToHost(sessionId, session.hostId, {
-      type: "response_count",
-      data: { questionId, count: responseCount, total: participantCount },
+    broadcastToRoom(sessionId, {
+      type: "host_response_count",
+      data: { hostId: session.hostId, questionId, count: responseCount, total: participantCount },
     });
   } catch (err) {
     console.error("Submit response error:", err);

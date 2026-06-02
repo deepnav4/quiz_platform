@@ -1,5 +1,6 @@
 import { broadcastToRoom, sendToOne } from "../utils/broadcast.js";
 import { startTimer, stopTimer } from "../utils/timer.js";
+import { purgeHostParticipant } from "../utils/sessionHelpers.js";
 import prisma from "@repo/db";
 
 export async function handleStartQuiz(ws, data) {
@@ -12,18 +13,7 @@ export async function handleStartQuiz(ws, data) {
       return sendToOne(ws, { type: "error", data: { message: "Not authorized" } });
     }
 
-    // Host is not a quiz participant — remove if they were added in the waiting room
-    await prisma.sessionParticipant.deleteMany({
-      where: { sessionId, userId: session.hostId },
-    });
-
-    const participantCount = await prisma.sessionParticipant.count({
-      where: { sessionId, isActive: true, userId: { not: session.hostId } },
-    });
-    await prisma.sessionState.update({
-      where: { sessionId },
-      data: { participantCount },
-    });
+    await purgeHostParticipant(sessionId, session.hostId);
 
     await prisma.session.update({
       where: { id: sessionId },

@@ -115,6 +115,30 @@ export async function joinSession(req, res, next) {
       return res.status(400).json({ message: "Session is not accepting participants" });
     }
 
+    if (String(session.hostId) === String(userId)) {
+      await prisma.sessionParticipant.deleteMany({
+        where: { sessionId: session.id, userId },
+      });
+      const count = await prisma.sessionParticipant.count({
+        where: { sessionId: session.id, isActive: true, userId: { not: session.hostId } },
+      });
+      await prisma.sessionState.update({
+        where: { sessionId: session.id },
+        data: { participantCount: count },
+      });
+      return res.json({
+        session: {
+          id: session.id,
+          quizId: session.quizId,
+          status: session.status,
+          joinCode: session.joinCode,
+          hostId: session.hostId,
+        },
+        role: "host",
+        participantCount: count,
+      });
+    }
+
     // Upsert participant
     const participant = await prisma.sessionParticipant.upsert({
       where: { sessionId_userId: { sessionId: session.id, userId } },
@@ -122,16 +146,18 @@ export async function joinSession(req, res, next) {
       update: { isActive: true, lastSeenAt: new Date() },
     });
 
-    // Update participant count
     const count = await prisma.sessionParticipant.count({
-      where: { sessionId: session.id, isActive: true },
+      where: { sessionId: session.id, isActive: true, userId: { not: session.hostId } },
     });
     await prisma.sessionState.update({
       where: { sessionId: session.id },
       data: { participantCount: count },
     });
 
-    res.json({ session: { id: session.id, quizId: session.quizId, status: session.status, joinCode: session.joinCode }, participantId: participant.id });
+    res.json({
+      session: { id: session.id, quizId: session.quizId, status: session.status, joinCode: session.joinCode },
+      participantId: participant.id,
+    });
   } catch (err) {
     next(err);
   }
@@ -146,13 +172,24 @@ export async function startSession(req, res, next) {
       return res.status(400).json({ message: "Session can only be started from waiting room" });
     }
 
+    await prisma.sessionParticipant.deleteMany({
+      where: { sessionId: session.id, userId: session.hostId },
+    });
+    const participantCount = await prisma.sessionParticipant.count({
+      where: { sessionId: session.id, isActive: true, userId: { not: session.hostId } },
+    });
+    await prisma.sessionState.update({
+      where: { sessionId: session.id },
+      data: { participantCount },
+    });
+
     const updated = await prisma.session.update({
       where: { id: req.params.sessionId },
       data: { status: "LIVE", startedAt: new Date() },
       include: { sessionState: true },
     });
 
-    res.json({ session: updated });
+    res.json({ session: { ...updated, participantCount } });
   } catch (err) {
     next(err);
   }

@@ -1,5 +1,5 @@
 import prisma from "@repo/db";
-import { sendToHost, sendToUserInRoom, broadcastToParticipants } from "./broadcast.js";
+import { broadcastToRoom, sendToUserInRoom, broadcastToParticipants } from "./broadcast.js";
 import { buildVoteStats } from "./voteStats.js";
 
 /** After time up or host reveals: send personal results to students + full stats to host. */
@@ -36,8 +36,8 @@ export async function revealQuestionAnswers(sessionId, questionId, hostId) {
   // Students who didn't answer still get time_up state; no personal reveal
 
   const stats = await buildVoteStats(sessionId, questionId, hostId, true);
-  sendToHost(sessionId, hostId, { type: "vote_stats", data: stats });
-  sendToHost(sessionId, hostId, { type: "time_up", data: { questionId } });
+  broadcastToRoom(sessionId, { type: "host_vote_stats", data: { ...stats, hostId } });
+  broadcastToRoom(sessionId, { type: "host_time_up", data: { questionId, hostId } });
 
   broadcastToParticipants(sessionId, hostId, {
     type: "time_up",
