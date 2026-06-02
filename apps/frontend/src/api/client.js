@@ -1,6 +1,17 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000/api';
+import { getApiBaseUrl } from '../config/urls.js';
+
+const API_BASE = getApiBaseUrl();
+
+export function getApiBase() {
+  return getApiBaseUrl();
+}
 
 export async function apiRequest(endpoint, options = {}) {
+  if (!API_BASE) {
+    throw new Error(
+      'API URL is not configured. Set VITE_API_BASE on Vercel (e.g. https://your-api.onrender.com/api).'
+    );
+  }
   const token = localStorage.getItem('token');
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   if (token) {

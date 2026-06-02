@@ -1,6 +1,19 @@
 import { broadcastToRoom, sendToOne } from "../utils/broadcast.js";
 import { startTimer, stopTimer } from "../utils/timer.js";
+import { isSessionHost } from "../utils/sessionHelpers.js";
+import { buildVoteStats } from "../utils/voteStats.js";
+import { revealQuestionAnswers } from "../utils/revealAnswers.js";
 import prisma from "@repo/db";
+
+async function pushHostVoteStats(sessionId, hostId, questionId, revealCorrect = false) {
+  const stats = await buildVoteStats(sessionId, questionId, hostId, revealCorrect);
+  if (stats) {
+    broadcastToRoom(sessionId, {
+      type: "host_vote_stats",
+      data: { ...stats, hostId },
+    });
+  }
+}
 
 export async function handleNextQuestion(ws, data) {
   try {
@@ -22,9 +35,11 @@ export async function handleNextQuestion(ws, data) {
       },
     });
 
-    if (!session || session.hostId !== ws.user.id) {
+    if (!session || !isSessionHost(session, ws.user.id)) {
       return sendToOne(ws, { type: "error", data: { message: "Not authorized" } });
     }
+
+    stopTimer(sessionId);
 
     const questions = session.quiz.questions;
     const currentIndex = session.sessionState.currentQuestionIndex;
@@ -35,7 +50,6 @@ export async function handleNextQuestion(ws, data) {
 
     const question = questions[currentIndex];
 
-    // Update session state
     await prisma.sessionState.update({
       where: { sessionId },
       data: {
@@ -50,9 +64,11 @@ export async function handleNextQuestion(ws, data) {
       data: { currentQuestionId: question.id },
     });
 
-    // Strip isCorrect from options before broadcasting
     const safeOptions = question.options.map(({ id, text, imageUrl, order }) => ({
-      id, text, imageUrl, order,
+      id,
+      text,
+      imageUrl,
+      order,
     }));
 
     broadcastToRoom(sessionId, {
@@ -68,21 +84,19 @@ export async function handleNextQuestion(ws, data) {
         timeLimitSeconds: question.timeLimitSeconds,
         questionIndex: currentIndex,
         totalQuestions: questions.length,
+        hostId: session.hostId,
       },
     });
 
-    // Start timer if timed
+    await pushHostVoteStats(sessionId, session.hostId, question.id, false);
+
     if (question.hasTimeLimit && question.timeLimitSeconds) {
       startTimer(sessionId, question.timeLimitSeconds * 1000, async () => {
-        // Time expired - stop accepting responses
         await prisma.sessionState.update({
           where: { sessionId },
           data: { isAcceptingResponses: false },
         });
-        broadcastToRoom(sessionId, {
-          type: "time_up",
-          data: { questionId: question.id },
-        });
+        await revealQuestionAnswers(sessionId, question.id, session.hostId);
       });
     }
   } catch (err) {
@@ -104,15 +118,21 @@ export async function handleSubmitResponse(ws, data) {
     if (!session || session.status !== "LIVE") {
       return sendToOne(ws, { type: "error", data: { message: "Session not live" } });
     }
+
+    if (isSessionHost(session, ws.user.id)) {
+      return sendToOne(ws, { type: "error", data: { message: "Host cannot submit answers" } });
+    }
+
     if (!session.sessionState.isAcceptingResponses) {
       return sendToOne(ws, { type: "error", data: { message: "Not accepting responses" } });
     }
 
-    // Check if already answered
     const existing = await prisma.response.findUnique({
       where: {
         sessionId_questionId_participantId: {
-          sessionId, questionId, participantId: ws.user.id,
+          sessionId,
+          questionId,
+          participantId: ws.user.id,
         },
       },
     });
@@ -120,14 +140,12 @@ export async function handleSubmitResponse(ws, data) {
       return sendToOne(ws, { type: "error", data: { message: "Already answered" } });
     }
 
-    // Get question with correct options
     const question = await prisma.question.findUnique({
       where: { id: questionId },
       include: { options: true },
     });
     if (!question) return sendToOne(ws, { type: "error", data: { message: "Question not found" } });
 
-    // Check correctness
     const correctOptionIds = question.options.filter((o) => o.isCorrect).map((o) => o.id);
     const selected = selectedOptionIds || [];
     const isCorrect =
@@ -136,12 +154,12 @@ export async function handleSubmitResponse(ws, data) {
 
     const pointsEarned = isCorrect ? question.points : 0;
 
-    // Calculate response time
     const questionStartedAt = session.sessionState.questionStartedAt;
-    const responseTimeMs = questionStartedAt ? Date.now() - new Date(questionStartedAt).getTime() : null;
+    const responseTimeMs = questionStartedAt
+      ? Date.now() - new Date(questionStartedAt).getTime()
+      : null;
 
-    // Create response
-    const response = await prisma.response.create({
+    await prisma.response.create({
       data: {
         sessionId,
         questionId,
@@ -156,36 +174,70 @@ export async function handleSubmitResponse(ws, data) {
       },
     });
 
-    // Update participant score
     await prisma.sessionParticipant.update({
       where: { sessionId_userId: { sessionId, userId: ws.user.id } },
       data: { totalScore: { increment: pointsEarned } },
     });
 
-    const participant = await prisma.sessionParticipant.findUnique({
-      where: { sessionId_userId: { sessionId, userId: ws.user.id } },
+    // Acknowledge only — no right/wrong until time is up (or host reveals)
+    sendToOne(ws, {
+      type: "response_ack",
+      data: { questionId, locked: true },
     });
 
-    sendToOne(ws, {
-      type: "response_received",
+    broadcastToRoom(sessionId, {
+      type: "host_participant_voted",
       data: {
-        isCorrect,
-        pointsEarned,
-        totalScore: participant.totalScore,
-        correctOptionIds,
+        hostId: session.hostId,
+        questionId,
+        userId: ws.user.id,
+        name: ws.user.name,
+        optionIds: selected,
       },
     });
 
-    // Notify host of response count
+    await pushHostVoteStats(sessionId, session.hostId, questionId, false);
+
     const responseCount = await prisma.response.count({
-      where: { sessionId, questionId },
+      where: { sessionId, questionId, participantId: { not: session.hostId } },
     });
+
+    const participantCount = await prisma.sessionParticipant.count({
+      where: { sessionId, isActive: true, userId: { not: session.hostId } },
+    });
+
     broadcastToRoom(sessionId, {
-      type: "response_count",
-      data: { questionId, count: responseCount },
+      type: "host_response_count",
+      data: { hostId: session.hostId, questionId, count: responseCount, total: participantCount },
     });
   } catch (err) {
     console.error("Submit response error:", err);
     sendToOne(ws, { type: "error", data: { message: "Failed to submit response" } });
+  }
+}
+
+/** Host ends accepting answers early (untimed or manual reveal). */
+export async function handleRevealAnswers(ws, data) {
+  try {
+    const { sessionId, questionId } = data;
+    if (!ws.user) return;
+
+    const session = await prisma.session.findUnique({ where: { id: sessionId } });
+    if (!session || !isSessionHost(session, ws.user.id)) {
+      return sendToOne(ws, { type: "error", data: { message: "Not authorized" } });
+    }
+
+    const qId = questionId || session.currentQuestionId;
+    if (!qId) return;
+
+    stopTimer(sessionId);
+    await prisma.sessionState.update({
+      where: { sessionId },
+      data: { isAcceptingResponses: false },
+    });
+
+    await revealQuestionAnswers(sessionId, qId, session.hostId);
+  } catch (err) {
+    console.error("Reveal answers error:", err);
   }
 }

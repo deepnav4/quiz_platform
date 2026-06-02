@@ -24,3 +24,7 @@ export function joinSession(joinCode) {
     () => ({ session: { id: 'session-joined-' + Date.now(), joinCode, status: 'WAITING' } })
   );
 }
+
+export function startSession(sessionId) {
+  return apiRequest(`/sessions/${sessionId}/start`, { method: 'PUT' });
+}

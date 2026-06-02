@@ -1,5 +1,6 @@
 import { broadcastToRoom, sendToOne } from "../utils/broadcast.js";
 import { startTimer, stopTimer } from "../utils/timer.js";
+import { purgeHostParticipant } from "../utils/sessionHelpers.js";
 import prisma from "@repo/db";
 
 export async function handleStartQuiz(ws, data) {
@@ -8,9 +9,11 @@ export async function handleStartQuiz(ws, data) {
     if (!ws.user) return sendToOne(ws, { type: "error", data: { message: "Not authenticated" } });
 
     const session = await prisma.session.findUnique({ where: { id: sessionId } });
-    if (!session || session.hostId !== ws.user.id) {
+    if (!session || String(session.hostId) !== String(ws.user.id)) {
       return sendToOne(ws, { type: "error", data: { message: "Not authorized" } });
     }
+
+    await purgeHostParticipant(sessionId, session.hostId);
 
     await prisma.session.update({
       where: { id: sessionId },
@@ -33,7 +36,7 @@ export async function handlePauseQuiz(ws, data) {
     if (!ws.user) return;
 
     const session = await prisma.session.findUnique({ where: { id: sessionId } });
-    if (!session || session.hostId !== ws.user.id) return;
+    if (!session || String(session.hostId) !== String(ws.user.id)) return;
 
     stopTimer(sessionId);
 
@@ -58,7 +61,7 @@ export async function handleResumeQuiz(ws, data) {
     if (!ws.user) return;
 
     const session = await prisma.session.findUnique({ where: { id: sessionId } });
-    if (!session || session.hostId !== ws.user.id) return;
+    if (!session || String(session.hostId) !== String(ws.user.id)) return;
 
     await prisma.session.update({
       where: { id: sessionId },
@@ -81,7 +84,7 @@ export async function handleEndQuiz(ws, data) {
     if (!ws.user) return;
 
     const session = await prisma.session.findUnique({ where: { id: sessionId } });
-    if (!session || session.hostId !== ws.user.id) return;
+    if (!session || String(session.hostId) !== String(ws.user.id)) return;
 
     stopTimer(sessionId);
 

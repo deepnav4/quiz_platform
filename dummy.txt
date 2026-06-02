@@ -14,6 +14,12 @@
 2. DATABASE SETUP
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+
+docker run -d --name quizora-postgres -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=quizora -p 5432:5432 postgres:16
+docker exec -it quizora-postgres psql -U postgres -d quizora    
+
+
+
 Step 1: Create a PostgreSQL database called "quizora"
    
    Open psql or pgAdmin and run:
@@ -118,6 +124,9 @@ TERMINAL 3 — Frontend (Vite dev server):
   │  Password: admin123                           │
   └───────────────────────────────────────────────┘
 
+
+Host: professor@university.edu / password123
+Participants: emma@student.edu, liam@student.edu, sophia@student.edu, noah@student.edu, olivia@student.edu / password123
 ▸ WITH BACKEND (after running seed.js):
   ┌───────────────────────────────────────────────┐
   │  Email:    creator@quizapp.com                │
