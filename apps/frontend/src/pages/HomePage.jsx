@@ -31,12 +31,6 @@ const EASY_CARDS = [
   { title: 'Flexible setups', desc: 'Use with any tool. Works seamlessly in-room, remote, or hybrid setups.' },
 ];
 
-const CASE_STUDIES = [
-  { stat: '97%', desc: 'of students felt more engaged in classroom activities', gradient: 'bg-gradient-to-br from-blue-100 via-blue-50 to-indigo-100' },
-  { stat: '4.5x', desc: 'more participation in corporate meetings and trainings', gradient: 'bg-gradient-to-br from-violet-100 via-purple-50 to-fuchsia-100' },
-  { stat: '89%', desc: 'say it improves learning outcomes and knowledge retention', gradient: 'bg-gradient-to-br from-rose-100 via-pink-50 to-orange-100' },
-];
-
 const LOGOS = ['ACME', 'TechCorp', 'EduPro', 'QuizMax', 'LearnHub', 'DataFlow'];
 
 /* ——————————————————————————————————
@@ -393,19 +387,6 @@ export default function HomePage() {
               Quizora makes it simple to spark participation that fuels a cycle of active learning and collaboration.
             </p>
           </RevealSection>
-          <div className="flex gap-6 overflow-x-auto pb-4 max-w-[1200px] mx-auto px-4 sm:px-6 mt-12 snap-x snap-mandatory scrollbar-hide">
-            {CASE_STUDIES.map((c, i) => (
-              <RevealSection key={c.stat} delay={i * 100} className="min-w-[300px] sm:min-w-[340px] flex-shrink-0 snap-start">
-                <article className="bg-menti-surface rounded-2xl overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                  <div className={`h-36 ${c.gradient}`} />
-                  <div className="p-6">
-                    <p className="font-hero text-5xl text-menti-text mb-2">{c.stat}</p>
-                    <p className="font-body text-sm text-menti-text-weak leading-relaxed">{c.desc}</p>
-                  </div>
-                </article>
-              </RevealSection>
-            ))}
-          </div>
         </section>
 
         {/* ── CTA ── */}
